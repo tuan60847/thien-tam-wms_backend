@@ -1,0 +1,343 @@
+// ============================================================
+// ThienTamWMS - Prisma Schema
+// Hệ thống quản lý kho thuốc cho nhà phân phối
+// Chuyển thể từ sơ đồ ERD ThienTamWMS
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql" // đổi thành "postgresql" nếu bạn dùng Postgres
+  url      = env("DATABASE_URL")
+}
+
+// ------------------------------------------------------------
+// PHÂN QUYỀN NGƯỜI DÙNG
+// ------------------------------------------------------------
+
+model Role {
+  id        String   @id @default(uuid())
+  maRole    String   @unique @map("ma_role")
+  tenRole   String   @map("ten_role")
+  moTa      String?  @map("mo_ta")
+  trangThai Boolean  @default(true) @map("trang_thai")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users User[]
+
+  @@map("role")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  maNV      String   @unique @map("ma_nv")
+  username  String   @unique
+  password  String
+  hoTen     String   @map("ho_ten")
+  email     String?  @unique
+  trangThai Boolean  @default(true) @map("trang_thai")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  roleId String? @map("role_id")
+  role   Role?   @relation(fields: [roleId], references: [id])
+
+  // Các phiếu do user này tạo — chỉ dùng để tính doanh số / thống kê,
+  // không phải quan hệ nghiệp vụ bắt buộc.
+  phieuXuatHangTao  PhieuXuatHang[]  @relation("PhieuXuatHangCreatedBy")
+  phieuNhapHangTao  PhieuNhapHang[]  @relation("PhieuNhapHangCreatedBy")
+
+  @@map("user")
+}
+
+// ------------------------------------------------------------
+// DANH MỤC HÀNG HÓA
+// ------------------------------------------------------------
+
+model LoaiHang {
+  id          String   @id @default(uuid())
+  tenLoaiHang String   @map("ten_loai_hang")
+  ghiChu      String?  @map("ghi_chu")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  hangHoas HangHoa[]
+
+  @@map("loai_hang")
+}
+
+model HangHoa {
+  id             String   @id @default(uuid())
+  tenSP          String   @map("ten_sp")
+  quyCach        String?  @map("quy_cach")
+  giaNhap        Decimal  @default(0) @map("gia_nhap") @db.Decimal(15, 2)
+  giaHienThi     Decimal  @default(0) @map("gia_hien_thi") @db.Decimal(15, 2)
+  giaToiThieu    Decimal  @default(0) @map("gia_toi_thieu") @db.Decimal(15, 2)
+  isKeDon        Boolean  @default(false) @map("is_ke_don") // thuốc kê đơn
+  isCanGiuLanh   Boolean  @default(false) @map("is_can_giu_lanh") // cần bảo quản lạnh
+  loaiKiemSoat   String?  @map("loai_kiem_soat") // thường / kê đơn / kiểm soát đặc biệt
+  soDangKy       String?  @map("so_dang_ky") // số đăng ký lưu hành thuốc
+  ghiChu         String?  @map("ghi_chu")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  loaiHangId String   @map("loai_hang_id")
+  loaiHang   LoaiHang @relation(fields: [loaiHangId], references: [id])
+
+  tyLeQuyDois TyLeQuyDoi[]
+  soLos       SoLo[]
+
+  @@map("hang_hoa")
+}
+
+model TyLeQuyDoi {
+  id              String  @id @default(uuid())
+  donViTinh       String  @map("don_vi_tinh") // hộp, vỉ, viên...
+  soLuongQuyDoi   Int     @map("so_luong_quy_doi") // quy đổi ra đơn vị nhỏ nhất
+
+  hangHoaId String  @map("hang_hoa_id")
+  hangHoa   HangHoa @relation(fields: [hangHoaId], references: [id])
+
+  @@map("ty_le_quy_doi")
+}
+
+// ------------------------------------------------------------
+// LÔ HÀNG & TỒN KHO
+// ------------------------------------------------------------
+
+model SoLo {
+  id          String   @id @default(uuid())
+  tenLo       String   @map("ten_lo")
+  ngaySX      DateTime? @map("ngay_sx")
+  hanSuDung   DateTime @map("han_su_dung")
+  trangThai   String   @default("con_han") @map("trang_thai") // con_han / can_date / het_han
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  hangHoaId String  @map("hang_hoa_id")
+  hangHoa   HangHoa @relation(fields: [hangHoaId], references: [id])
+
+  chiTietPhieuXuatHangs   ChiTietPhieuXuatHang[]
+  chiTietPhieuNhapHangs   ChiTietPhieuNhapHang[]
+  tonKhos                 TonKho[]
+
+  @@map("so_lo")
+}
+
+model Kho {
+  id      String  @id @default(uuid())
+  tenKho  String  @map("ten_kho")
+  diaChi  String? @map("dia_chi")
+
+  viTris ViTri[]
+
+  @@map("kho")
+}
+
+model ViTri {
+  id          String  @id @default(uuid())
+  tenViTri    String  @map("ten_vi_tri")
+  isCapDong   Boolean @default(false) @map("is_cap_dong") // vị trí bảo quản lạnh
+  ghiChu      String? @map("ghi_chu")
+
+  khoId String @map("kho_id")
+  kho   Kho    @relation(fields: [khoId], references: [id])
+
+  tonKhos TonKho[]
+
+  @@map("vi_tri")
+}
+
+// Thực thể liên kết nhiều-nhiều giữa SoLo và ViTri
+model TonKho {
+  id       String @id @default(uuid())
+  soLuong  Int    @default(0) @map("so_luong")
+
+  soLoId  String @map("so_lo_id")
+  soLo    SoLo   @relation(fields: [soLoId], references: [id])
+
+  viTriId String @map("vi_tri_id")
+  viTri   ViTri  @relation(fields: [viTriId], references: [id])
+
+  @@unique([soLoId, viTriId]) // mỗi lô ở mỗi vị trí chỉ có 1 dòng tồn
+  @@map("ton_kho")
+}
+
+// ------------------------------------------------------------
+// KHÁCH HÀNG (NHÀ THUỐC) & NHÀ CUNG CẤP
+// ------------------------------------------------------------
+
+model KhachHang {
+  id             String  @id @default(uuid())
+  maKH           String  @unique @map("ma_kh")
+  tenKH          String  @map("ten_kh")
+  diaChi         String? @map("dia_chi")
+  maSoThue       String? @map("ma_so_thue")
+  email          String?
+  SDT            String?
+  nguoiDaiDien   String? @map("nguoi_dai_dien")
+  SDTNDD         String? @map("sdt_ndd") // SĐT người đại diện
+  trangThai      String  @default("hoat_dong") @map("trang_thai")
+
+  // Đề xuất bổ sung để tuân thủ (chưa có trong bản vẽ gốc, nên thêm khi cần)
+  soGiayPhepKinhDoanh String?   @map("so_giay_phep_kinh_doanh")
+  ngayCapGPKD         DateTime? @map("ngay_cap_gpkd")
+  ngayHetHanGPKD      DateTime? @map("ngay_het_han_gpkd")
+
+  phieuXuatHangs   PhieuXuatHang[]
+
+  @@map("khach_hang")
+}
+
+model NhaCungCap {
+  id                            String  @id @default(uuid())
+  tenNCC                        String  @map("ten_ncc")
+  SDT                           String?
+  diaChi                        String? @map("dia_chi")
+  tenNguoiPhuTrach              String? @map("ten_nguoi_phu_trach")
+  sdtNguoiPT                    String? @map("sdt_nguoi_pt")
+  trangThaiXacMinh              String  @default("chua_xac_minh") @map("trang_thai_xac_minh")
+  ghiChu                        String? @map("ghi_chu")
+
+  soGiayPhepKinhDoanh           String?   @map("so_giay_phep_kinh_doanh")
+  ngayCapGPKD                   DateTime? @map("ngay_cap_gpkd")
+  noiCapGPKD                    String?   @map("noi_cap_gpkd")
+
+  soGCNDuDieuKienKinhDoanhDuoc  String?   @map("so_gcn_du_dieu_kien_kinh_doanh_duoc")
+  ngayCapGCNDuoc                DateTime? @map("ngay_cap_gcn_duoc")
+  noiCapGCNDuoc                 String?   @map("noi_cap_gcn_duoc")
+
+  phieuNhapHangs PhieuNhapHang[]
+
+  @@map("nha_cung_cap")
+}
+
+// ------------------------------------------------------------
+// PHƯƠNG TIỆN VẬN CHUYỂN
+// ------------------------------------------------------------
+
+model PhuongTienVanChuyen {
+  id              String  @id @default(uuid())
+  bienSo          String  @unique @map("bien_so")
+  loaiPhuongTien  String? @map("loai_phuong_tien")
+
+  phieuNhapHangs PhieuNhapHang[]
+
+  @@map("phuong_tien_van_chuyen")
+}
+
+// ------------------------------------------------------------
+// PHIẾU NHẬP HÀNG
+// ------------------------------------------------------------
+
+model PhieuNhapHang {
+  id              String    @id @default(uuid())
+  maPhieuNhapHang String    @unique @map("ma_phieu_nhap_hang")
+  ngayNhanHang    DateTime? @map("ngay_nhan_hang")
+  trangThai       String    @default("cho_xac_nhan") @map("trang_thai")
+  createAt        DateTime  @default(now()) @map("create_at")
+
+  nhaCungCapId String     @map("nha_cung_cap_id")
+  nhaCungCap   NhaCungCap @relation(fields: [nhaCungCapId], references: [id])
+
+  phuongTienVanChuyenId String?               @map("phuong_tien_van_chuyen_id")
+  phuongTienVanChuyen   PhuongTienVanChuyen?  @relation(fields: [phuongTienVanChuyenId], references: [id])
+
+  // Dùng để tính doanh số / thống kê theo người tạo, không phải khóa nghiệp vụ bắt buộc
+  createdById String? @map("created_by_id")
+  createdBy   User?   @relation("PhieuNhapHangCreatedBy", fields: [createdById], references: [id])
+
+  chiTietPhieuNhapHangs ChiTietPhieuNhapHang[]
+  phieuThanhToans       PhieuThanhToan[]
+
+  @@map("phieu_nhap_hang")
+}
+
+model ChiTietPhieuNhapHang {
+  id                    String  @id @default(uuid())
+  maChiTietPhieuNhapHang String @unique @map("ma_chi_tiet_phieu_nhap_hang")
+  soLuong               Int     @map("so_luong")
+  donGia                Decimal @map("don_gia") @db.Decimal(15, 2)
+
+  phieuNhapHangId String        @map("phieu_nhap_hang_id")
+  phieuNhapHang   PhieuNhapHang @relation(fields: [phieuNhapHangId], references: [id])
+
+  // 1 lô có thể có nhiều dòng chi tiết nhập hàng (nhập nhiều lần),
+  // nhưng 1 dòng chi tiết nhập hàng chỉ ứng với đúng 1 lô
+  soLoId String @map("so_lo_id")
+  soLo   SoLo   @relation(fields: [soLoId], references: [id])
+
+  @@map("chi_tiet_phieu_nhap_hang")
+}
+
+// ------------------------------------------------------------
+// PHIẾU XUẤT HÀNG
+// ------------------------------------------------------------
+
+model PhieuXuatHang {
+  id              String   @id @default(uuid())
+  maPhieuXuatHang String   @unique @map("ma_phieu_xuat_hang")
+  ngayGiaoHang    DateTime? @map("ngay_giao_hang")
+  diaChiGiaoHang  String?  @map("dia_chi_giao_hang")
+  trangThai       String   @default("cho_xu_ly") @map("trang_thai")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  khachHangId String    @map("khach_hang_id")
+  khachHang   KhachHang @relation(fields: [khachHangId], references: [id])
+
+  // Dùng để tính doanh số / thống kê theo người tạo, không phải khóa nghiệp vụ bắt buộc
+  createdById String? @map("created_by_id")
+  createdBy   User?   @relation("PhieuXuatHangCreatedBy", fields: [createdById], references: [id])
+
+  chiTietPhieuXuatHangs ChiTietPhieuXuatHang[]
+  phieuThuCongNos       PhieuThuCongNo[]
+
+  @@map("phieu_xuat_hang")
+}
+
+model ChiTietPhieuXuatHang {
+  id                     String  @id @default(uuid())
+  maChiTietPhieuXuatHang String  @unique @map("ma_chi_tiet_phieu_xuat_hang")
+  soLuong                Int     @map("so_luong")
+  donGia                 Decimal @map("don_gia") @db.Decimal(15, 2)
+
+  phieuXuatHangId String        @map("phieu_xuat_hang_id")
+  phieuXuatHang   PhieuXuatHang @relation(fields: [phieuXuatHangId], references: [id])
+
+  // Truy vết lô: 1 dòng xuất lấy hàng từ 1 lô cụ thể
+  soLoId String @map("so_lo_id")
+  soLo   SoLo   @relation(fields: [soLoId], references: [id])
+
+  @@map("chi_tiet_phieu_xuat_hang")
+}
+
+// ------------------------------------------------------------
+// CÔNG NỢ: THU TỪ KHÁCH HÀNG / THANH TOÁN CHO NHÀ CUNG CẤP
+// ------------------------------------------------------------
+
+model PhieuThuCongNo {
+  id               String   @id @default(uuid())
+  maPhieuThuCongNo String   @unique @map("ma_phieu_thu_cong_no")
+  soTien           Decimal  @map("so_tien") @db.Decimal(15, 2)
+  ngayThanhToan    DateTime @map("ngay_thanh_toan")
+
+  phieuXuatHangId String        @map("phieu_xuat_hang_id")
+  phieuXuatHang   PhieuXuatHang @relation(fields: [phieuXuatHangId], references: [id])
+
+  @@map("phieu_thu_cong_no")
+}
+
+model PhieuThanhToan {
+  id                String   @id @default(uuid())
+  maPhieuThanhToan  String   @unique @map("ma_phieu_thanh_toan")
+  soTien            Decimal  @map("so_tien") @db.Decimal(15, 2)
+  ngayThanhToan     DateTime @map("ngay_thanh_toan")
+
+  phieuNhapHangId String        @map("phieu_nhap_hang_id")
+  phieuNhapHang   PhieuNhapHang @relation(fields: [phieuNhapHangId], references: [id])
+
+  @@map("phieu_thanh_toan")
+}
