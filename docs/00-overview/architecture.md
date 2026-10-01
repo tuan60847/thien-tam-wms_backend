@@ -2,7 +2,7 @@
 
 ## 1. Tổng quan
 
-Monolith module hóa (NestJS), một tiến trình HTTP, một database MySQL. Mỗi bounded context là một Nest module; module giao tiếp qua **service được export**, không chạm model của nhau trực tiếp qua Prisma (trừ các truy vấn đọc trong module báo cáo).
+Monolith module hóa (NestJS), một tiến trình HTTP, một database MySQL. Mỗi bounded context là một Nest module; module giao tiếp qua **service được export**, **chỉ ghi bảng của mình**; việc ghi vào bảng của module khác luôn đi qua service của chủ sở hữu. Đọc qua relation Prisma (ví dụ `so-lo` lọc theo `tonKhos`) và các truy vấn tổng hợp trong `bao-cao` được phép.
 
 ```
 HTTP request

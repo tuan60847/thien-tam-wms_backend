@@ -26,6 +26,7 @@ Tài liệu này (1) ghi bất biến/ràng buộc nghiệp vụ theo từng b�
 | P-18 | CHECK constraint bằng SQL thô: `ton_kho.so_luong >= 0`, `chi_tiet_*.so_luong > 0`, `ty_le_quy_doi.so_luong_quy_doi >= 1`, tiền `>= 0` | Lưới an toàn cuối cùng | theo module | tồn kho, phiếu |
 | P-19 | Index `RefreshToken.expiresAt` | Job dọn token hết hạn | M8 | auth |
 | P-20 | Đổi tên `PhieuNhapHang.createAt` → `createdAt` (cột `create_at` → `created_at`) | Nhất quán | M0 | phiếu nhập |
+| P-21 | `PhuongTienVanChuyen.isXeLanh Boolean @default(false)` | Phân biệt xe lạnh cho hàng cần bảo quản lạnh | M3 | phương tiện, phiếu nhập/xuất |
 
 Nguyên tắc triển khai: gom P-01…P-06, P-14, P-15, P-20 vào **một** migration ở M0 (an toàn vì chưa có dữ liệu thật); các đề xuất còn lại thêm đúng milestone cần dùng.
 

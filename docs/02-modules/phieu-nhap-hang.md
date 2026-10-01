@@ -137,10 +137,10 @@ src/phieu-nhap-hang/
     chi-tiet-nhap.dto.ts
     update-phieu-nhap.dto.ts
     xac-nhan-nhap.dto.ts
-    huy-phieu.dto.ts
     query-phieu-nhap.dto.ts
     phieu-nhap-response.dto.ts
 ```
+(`HuyPhieuDto` dùng chung từ `src/common/dto/huy-phieu.dto.ts`.)
 
 ## 12. Test plan
 ### Unit tests

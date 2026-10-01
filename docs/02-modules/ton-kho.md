@@ -92,7 +92,7 @@ Route tĩnh (`tong-hop`, `goi-y-xuat`, `bien-dong`, `doi-soat`) khai báo **trư
 ## 9. Service layer design
 `TonKhoService` (public API cho phiếu, dùng `tx` bắt buộc):
 - `increase(input: StockMove, actor: AuthenticatedUser, tx: Prisma.TransactionClient): Promise<TonKho>` — kiểm BR-05/06, `upsert` tăng, ghi biến động.
-- `decrease(input: StockMove, actor: AuthenticatedUser, tx: Prisma.TransactionClient): Promise<TonKho>` — BR-02, ghi biến động; `StockMove = { soLoId; viTriId; soLuongCoBan; loai: LoaiBienDong; thamChieu?: { loai: string; id: string }; lyDo?: string }`.
+- `decrease(input: StockMove, actor: AuthenticatedUser, tx: Prisma.TransactionClient): Promise<TonKho>` — BR-02, ghi biến động; `StockMove = { soLoId; viTriId; soLuongCoBan; loai: LoaiBienDong; thamChieu?: { loai: string; id: string }; lyDo?: string; boQuaKiemTraViTriHoatDong?: boolean }`; cờ `boQuaKiemTraViTriHoatDong` chỉ dùng cho thao tác hoàn tác (`huy_xuat`, `huy_nhap`) để vẫn hoàn tồn được về vị trí đã ngừng sử dụng; kiểm chuỗi lạnh vẫn áp dụng.
 - `assertColdChain(hangHoa: { isCanGiuLanh: boolean }, viTri: { isCapDong: boolean }): void` — hàm thuần.
 - `getQuantity(soLoId: string, viTriId: string, tx?): Promise<number>`.
 
@@ -179,7 +179,7 @@ src/ton-kho/
 - Điều chỉnh bởi `QUAN_LY_KHO` thành công; bởi `NHAN_VIEN_KHO` → 403; thiếu lý do → 400; không đổi → 422.
 - `goi-y-xuat` với 3 lô (hết hạn, hạn gần, hạn xa) → bỏ lô hết hạn, ưu tiên hạn gần; yêu cầu vượt tồn → `thieu > 0`.
 - **Đồng thời:** tồn 10, hai request giảm 7 chạy song song (`Promise.all`) → đúng một thành công, một 409, tồn cuối = 3.
-- **Bất bin đối soát:** sau chuỗi nhập → chuyển → điều chỉnh → xuất → hủy xuất, `GET /ton-kho/doi-soat` trả `soDongLech = 0`.
+- **Bất biến đối soát:** sau chuỗi nhập → chuyển → điều chỉnh → xuất → hủy xuất, `GET /ton-kho/doi-soat` trả `soDongLech = 0`.
 - Ma trận role: `KE_TOAN` xem được `GET`, `POST chuyen-vi-tri` → 403; `doi-soat` chỉ ADMIN.
 
 ## 13. Permissions

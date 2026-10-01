@@ -28,6 +28,8 @@ Mục tiêu: dựng "hợp đồng" kỹ thuật để các module sau chỉ vi�
 | `helmet`, CORS theo env | |
 | `ClockService`, `CodeGeneratorService` + bảng `BoDemMa` | |
 | Hằng số role + seed thêm `QUAN_LY_KHO`, `KE_TOAN` | |
+| `configureApp(app)` dùng chung (`src/app.setup.ts`): prefix, `ValidationPipe`, filter, `enableShutdownHooks`; `main.ts` và e2e cùng gọi | tránh test chạy trên cấu hình khác production |
+| Factory test dùng chung (`src/testing/factories.ts`, `test/helpers/factories.ts`) và `expectRoleMatrix` | [unit-testing.md](../04-testing/unit-testing.md), [e2e-testing.md](../04-testing/e2e-testing.md) |
 | Migration thêm trường audit chung (xem [schema-notes.md](../01-data/schema-notes.md)) | Làm một lần ở đây để tránh migrate rải rác |
 | Quyết định giữ/bỏ `@nestjs/observe` | |
 

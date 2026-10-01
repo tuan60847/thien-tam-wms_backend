@@ -45,6 +45,14 @@ Index: `(loaiDoiTuong, doiTuongId)`.
 
 Vi phạm → `TEP_TOO_LARGE` / `TEP_TYPE_NOT_ALLOWED` (422). Cloudinary lỗi → `TEP_UPLOAD_FAILED` (502), không lộ chi tiết nhà cung cấp.
 
+| Mã lỗi | HTTP | Khi nào | Message (VN) |
+|---|---|---|---|
+| `TEP_NOT_FOUND` | 404 | tệp không tồn tại | Không tìm thấy tệp đính kèm |
+| `TEP_TOO_LARGE` | 422 | quá 10 MB | Tệp vượt quá dung lượng cho phép (10 MB) |
+| `TEP_TYPE_NOT_ALLOWED` | 422 | sai định dạng / magic bytes | Định dạng tệp không được hỗ trợ |
+| `TEP_TARGET_INVALID` | 422 | đối tượng gắn không tồn tại hoặc đã đủ 20 tệp | Đối tượng đính kèm không hợp lệ hoặc đã đủ số tệp tối đa |
+| `TEP_UPLOAD_FAILED` | 502 | Cloudinary lỗi | Không thể tải tệp lên, vui lòng thử lại |
+
 ## 4. Quyền truy cập file
 
 - File nhạy cảm (giấy phép, hợp đồng) lưu với `type: 'authenticated'` trên Cloudinary; API trả **URL ký có hạn ngắn** (ví dụ 5 phút) sinh theo yêu cầu qua `GET /api/v1/tep-dinh-kem/:id/url`, chỉ cho user có quyền xem đối tượng gắn.
