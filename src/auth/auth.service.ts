@@ -1,8 +1,9 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
 import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
 import bcrypt from 'bcrypt';
+import { AppException } from '../common/errors/app.exception.js';
 import { authConfig } from '../config/auth.config.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService, type UserWithRole } from '../users/users.service.js';
@@ -24,10 +25,6 @@ export interface LoginResult extends IssuedTokens {
 }
 
 export const BCRYPT_COST = 10;
-
-const MSG_BAD_CREDENTIALS = 'Sai tài khoản hoặc mật khẩu';
-const MSG_INVALID_SESSION = 'Phiên đăng nhập không hợp lệ';
-const MSG_LOCKED = 'Tài khoản đã bị khóa';
 
 // Dummy hash so response time for an unknown username stays close to a wrong password.
 const DUMMY_HASH = bcrypt.hashSync(randomUUID(), BCRYPT_COST);
@@ -53,10 +50,10 @@ export class AuthService {
       user?.password ?? DUMMY_HASH,
     );
     if (!user || !passwordOk) {
-      throw new UnauthorizedException(MSG_BAD_CREDENTIALS);
+      throw new AppException('AUTH_INVALID_CREDENTIALS');
     }
     if (!user.trangThai) {
-      throw new UnauthorizedException(MSG_LOCKED);
+      throw new AppException('AUTH_ACCOUNT_LOCKED');
     }
 
     const tokens = await this.issueTokens(user);
@@ -69,30 +66,30 @@ export class AuthService {
         secret: this.config.refreshSecret,
       });
     } catch {
-      throw new UnauthorizedException(MSG_INVALID_SESSION);
+      throw new AppException('AUTH_SESSION_INVALID');
     }
 
     const stored = await this.prisma.refreshToken.findUnique({
       where: { tokenHash: hashToken(dto.refreshToken) },
     });
     if (!stored) {
-      throw new UnauthorizedException(MSG_INVALID_SESSION);
+      throw new AppException('AUTH_SESSION_INVALID');
     }
     if (stored.revokedAt) {
       // A rotated token is being reused: treat it as leaked and revoke every session.
       await this.revokeAllForUser(stored.userId);
-      throw new UnauthorizedException(MSG_INVALID_SESSION);
+      throw new AppException('AUTH_SESSION_INVALID');
     }
     if (stored.expiresAt <= new Date()) {
-      throw new UnauthorizedException(MSG_INVALID_SESSION);
+      throw new AppException('AUTH_SESSION_INVALID');
     }
 
     const user = await this.users.findById(stored.userId);
     if (!user) {
-      throw new UnauthorizedException(MSG_INVALID_SESSION);
+      throw new AppException('AUTH_SESSION_INVALID');
     }
     if (!user.trangThai) {
-      throw new UnauthorizedException(MSG_LOCKED);
+      throw new AppException('AUTH_ACCOUNT_LOCKED');
     }
 
     const { accessToken, refreshToken, refreshExpiresAt } =
@@ -105,7 +102,7 @@ export class AuthService {
         data: { revokedAt: new Date() },
       });
       if (count !== 1) {
-        throw new UnauthorizedException(MSG_INVALID_SESSION);
+        throw new AppException('AUTH_SESSION_INVALID');
       }
       await tx.refreshToken.create({
         data: {
@@ -136,10 +133,10 @@ export class AuthService {
   async validateUser(userId: string): Promise<AuthenticatedUser> {
     const user = await this.users.findById(userId);
     if (!user) {
-      throw new UnauthorizedException(MSG_INVALID_SESSION);
+      throw new AppException('AUTH_SESSION_INVALID');
     }
     if (!user.trangThai) {
-      throw new UnauthorizedException(MSG_LOCKED);
+      throw new AppException('AUTH_ACCOUNT_LOCKED');
     }
     return this.toAuthenticatedUser(user);
   }

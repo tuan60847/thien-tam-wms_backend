@@ -8,11 +8,11 @@ Cột **Trạng thái**: `có` = đã dùng trong code; `đề xuất` = sẽ th
 
 | Tên | Ví dụ | Bắt buộc | Mô tả | Trạng thái |
 |---|---|---|---|---|
-| `NODE_ENV` | `development` / `test` / `production` | không (mặc định `development`) | Chế độ chạy; quyết định pretty log, seed demo, Swagger mặc định | đề xuất (M0) |
+| `NODE_ENV` | `development` / `test` / `production` | không (mặc định `development`) | Chế độ chạy; quyết định pretty log, seed demo, Swagger mặc định | có (M0) |
 | `PORT` | `3000` | không (mặc định 3000) | Cổng HTTP | có |
 | `DATABASE_URL` | `mysql://user:pass@localhost:3306/thienTamWMS` | **có** | Kết nối MySQL (qua `@prisma/adapter-mariadb`); e2e dùng DB tên kết thúc `_test` | có |
-| `CORS_ORIGINS` | `https://wms.example.vn,http://localhost:5173` | không (mặc định: tắt CORS) | Danh sách origin được phép, phân tách phẩy; không dùng `*` ở production | đề xuất (M0) |
-| `TRUST_PROXY` | `1` | không | Số tầng proxy tin cậy (để lấy IP thật khi chạy sau reverse proxy) | đề xuất (M0) |
+| `CORS_ORIGINS` | `https://wms.example.vn,http://localhost:5173` | không (mặc định: tắt CORS) | Danh sách origin được phép, phân tách phẩy; không dùng `*` ở production | có (M0) |
+| `TRUST_PROXY` | `1` | không | Số tầng proxy tin cậy (để lấy IP thật khi chạy sau reverse proxy) | có (M0) |
 
 ## 2. Xác thực
 
@@ -33,17 +33,17 @@ Sinh secret: `openssl rand -base64 48`. Đổi secret ⇒ mọi token hiện có
 | `EXPIRY_WARNING_DAYS` | `90` | không (mặc định 90) | Ngưỡng số ngày trước hạn tính là "cận date" | đề xuất (M4) |
 | `MIN_SHELF_LIFE_DAYS_RECEIVE` | `0` | không (mặc định 0 = tắt) | Hạn dùng tối thiểu còn lại khi nhập kho | đề xuất (M4) |
 | `MIN_SHELF_LIFE_DAYS_ISSUE` | `0` | không (mặc định 0 = tắt) | Hạn dùng tối thiểu còn lại khi xuất kho | đề xuất (M4) |
-| `SEED_ADMIN_PASSWORD` | `…` | **có khi `NODE_ENV=production` lúc seed** | Mật khẩu admin cho seed nền; thiếu ở production ⇒ seed dừng | đề xuất (M0) |
+| `SEED_ADMIN_PASSWORD` | `…` | **có khi `NODE_ENV=production` lúc seed** | Mật khẩu admin cho seed nền; thiếu ở production ⇒ seed dừng | có (M0) |
 
 ## 4. Hạ tầng phụ
 
 | Tên | Ví dụ | Bắt buộc | Mô tả | Trạng thái |
 |---|---|---|---|---|
-| `LOG_LEVEL` | `info` | không (mặc định `info`; `debug` ở dev) | Mức log pino | đề xuất (M0) |
+| `LOG_LEVEL` | `info` | không (mặc định `info`; `debug` ở dev) | Mức log pino | có (M0) |
 | `JOBS_ENABLED` | `true` | không (mặc định `true`; `false` trong test) | Bật/tắt job nền | đề xuất (M4) |
 | `JOBS_TIMEZONE` | `Asia/Ho_Chi_Minh` | không | Múi giờ lịch cron | đề xuất (M4) |
-| `SWAGGER_ENABLED` | `true` | không (mặc định: bật ở dev/staging, tắt ở production) | Bật Swagger UI | đề xuất (M0) |
-| `SWAGGER_USER` / `SWAGGER_PASSWORD` | `…` | chỉ khi bật Swagger ở production | Basic-auth cho Swagger | đề xuất (M0) |
+| `SWAGGER_ENABLED` | `true` | không (mặc định: bật ở dev/staging, tắt ở production) | Bật Swagger UI | có (M0) |
+| `SWAGGER_USER` / `SWAGGER_PASSWORD` | `…` | chỉ khi bật Swagger ở production | Basic-auth cho Swagger | có (M0) |
 | `CLOUDINARY_CLOUD_NAME` | `my-cloud` | chỉ khi dùng upload (M7) | Tên cloud | có trong `.env.example` (chưa dùng) |
 | `CLOUDINARY_API_KEY` | `…` | như trên | API key | có trong `.env.example` (chưa dùng) |
 | `CLOUDINARY_API_SECRET` | `…` | như trên | API secret (bí mật) | có trong `.env.example` (chưa dùng) |

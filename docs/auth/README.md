@@ -1,15 +1,17 @@
 # Auth module
 
+> Từ M0 mọi route có prefix `/api/v1` (ví dụ `POST /api/v1/auth/login`) và lỗi trả body chuẩn có `code` — xem [../06-api/conventions.md](../06-api/conventions.md) và [../03-cross-cutting/error-handling.md](../03-cross-cutting/error-handling.md).
+
 Đăng nhập bằng `username` + `password`, JWT access token (15 phút) và refresh token (7 ngày) có xoay vòng, phân quyền theo role. Thiết kế chi tiết: [PLAN.md](./PLAN.md).
 
 ## Endpoint
 
 | Method | Path | Xác thực | Body | Thành công |
 |---|---|---|---|---|
-| POST | `/auth/login` | Public | `{ username, password }` | 200 `{ accessToken, refreshToken, user }` |
-| POST | `/auth/refresh` | Public | `{ refreshToken }` | 200 `{ accessToken, refreshToken }` |
-| POST | `/auth/logout` | Public | `{ refreshToken }` | 204, không body |
-| GET | `/auth/me` | Bearer access token | — | 200 `AuthenticatedUser` |
+| POST | `/api/v1/auth/login` | Public | `{ username, password }` | 200 `{ accessToken, refreshToken, user }` |
+| POST | `/api/v1/auth/refresh` | Public | `{ refreshToken }` | 200 `{ accessToken, refreshToken }` |
+| POST | `/api/v1/auth/logout` | Public | `{ refreshToken }` | 204, không body |
+| GET | `/api/v1/auth/me` | Bearer access token | — | 200 `AuthenticatedUser` |
 
 Lỗi thường gặp:
 
@@ -21,7 +23,7 @@ Lỗi thường gặp:
 | 401 | `Phiên đăng nhập không hợp lệ` | thiếu/sai/hết hạn token, refresh token đã thu hồi |
 | 403 | `Bạn không có quyền truy cập` | route có `@Roles(...)` mà role không khớp |
 
-`user` trong response login và `/auth/me`:
+`user` trong response login và `/api/v1/auth/me`:
 
 ```json
 {
@@ -40,20 +42,20 @@ Lỗi thường gặp:
 
 ```bash
 # Đăng nhập
-curl -s -X POST localhost:3000/auth/login \
+curl -s -X POST localhost:3000/api/v1/auth/login \
   -H 'content-type: application/json' \
   -d '{"username":"admin","password":"Admin@123"}'
 
 # Thông tin người dùng hiện tại
-curl -s localhost:3000/auth/me -H "authorization: Bearer $ACCESS_TOKEN"
+curl -s localhost:3000/api/v1/auth/me -H "authorization: Bearer $ACCESS_TOKEN"
 
 # Lấy cặp token mới (refresh token cũ bị thu hồi)
-curl -s -X POST localhost:3000/auth/refresh \
+curl -s -X POST localhost:3000/api/v1/auth/refresh \
   -H 'content-type: application/json' \
   -d "{\"refreshToken\":\"$REFRESH_TOKEN\"}"
 
 # Đăng xuất (thu hồi refresh token)
-curl -i -X POST localhost:3000/auth/logout \
+curl -i -X POST localhost:3000/api/v1/auth/logout \
   -H 'content-type: application/json' \
   -d "{\"refreshToken\":\"$REFRESH_TOKEN\"}"
 ```
@@ -109,18 +111,18 @@ sequenceDiagram
     participant A as Auth API
     participant DB as refresh_token
 
-    C->>A: POST /auth/login
+    C->>A: POST /api/v1/auth/login
     A->>DB: lưu SHA-256(refresh token)
     A-->>C: access (15m) + refresh (7d)
     C->>A: GET /… + Bearer access
     Note over A: kiểm chữ ký → tải user từ DB → kiểm trangThai
-    C->>A: POST /auth/refresh (refresh cũ)
+    C->>A: POST /api/v1/auth/refresh (refresh cũ)
     A->>DB: thu hồi token cũ, lưu token mới (1 transaction)
     A-->>C: access mới + refresh mới
-    C->>A: POST /auth/refresh (refresh cũ, dùng lại)
+    C->>A: POST /api/v1/auth/refresh (refresh cũ, dùng lại)
     A->>DB: thu hồi toàn bộ token của user
     A-->>C: 401
-    C->>A: POST /auth/logout (refresh)
+    C->>A: POST /api/v1/auth/logout (refresh)
     A->>DB: revokedAt = now
     A-->>C: 204
 ```

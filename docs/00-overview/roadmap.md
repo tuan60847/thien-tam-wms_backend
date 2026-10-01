@@ -13,7 +13,7 @@ M0 Nền tảng ──► M1 Định danh ──► M2 Danh mục hàng ──�
                           M8 Hardening & triển khai
 ```
 
-## M0 — Nền tảng chung (L)
+## M0 — Nền tảng chung (L) — ✅ đã triển khai (2026-10-01)
 
 Mục tiêu: dựng "hợp đồng" kỹ thuật để các module sau chỉ việc cắm vào.
 
@@ -34,6 +34,8 @@ Mục tiêu: dựng "hợp đồng" kỹ thuật để các module sau chỉ vi�
 | Quyết định giữ/bỏ `@nestjs/observe` | |
 
 Phụ thuộc: không. Là điều kiện cho mọi milestone sau.
+
+**Kết quả thực tế M0:** xong tất cả mục trên trừ: `helmet`/CORS cấu hình qua env (xong), rate limit login (để M1 cùng `@nestjs/throttler`), `createdById`/`updatedById` (thêm cùng module cần dùng), `P-17`/`P-21` và các trường phiếu P-07…P-10 (thêm ở milestone tương ứng). `@nestjs/observe` đã gỡ. Chi tiết trong báo cáo cuối M0.
 
 ## M1 — Định danh (M)
 

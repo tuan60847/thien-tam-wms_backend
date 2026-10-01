@@ -74,8 +74,15 @@ Phân biệt 409 / 422: 409 = "việc bạn làm đụng vào trạng thái hệ
 | `COMMON_TOO_MANY_REQUESTS` | 429 | Bạn thao tác quá nhanh, vui lòng thử lại sau |
 | `INTERNAL_ERROR` | 500 | Hệ thống đang gặp sự cố, vui lòng thử lại sau |
 | `COMMON_INVALID_ID` | 400 | Mã định danh không hợp lệ (UUID sai định dạng) |
+| `COMMON_CONFLICT` | 409 | Dữ liệu xung đột với dữ liệu hiện có |
+| `COMMON_CONCURRENT_UPDATE` | 409 | Dữ liệu vừa được người khác thay đổi, vui lòng tải lại và thử lại |
+| `COMMON_PAYLOAD_TOO_LARGE` | 413 | Dữ liệu gửi lên quá lớn |
+| `COMMON_ERROR` | theo lỗi gốc | Yêu cầu không hợp lệ (mã dự phòng cho `HttpException` có status lạ) |
+| `COMMON_SERVICE_UNAVAILABLE` | 503 | Hệ thống chưa sẵn sàng, vui lòng thử lại sau (health check không đạt) |
 
 Các message `AUTH_*` khớp với message Auth đã có ("Sai tài khoản hoặc mật khẩu", "Tài khoản đã bị khóa", "Phiên đăng nhập không hợp lệ", "Bạn không có quyền truy cập"). "Vui lòng đăng nhập để tiếp tục" thay thế thông báo mặc định của Nest cho thiếu token.
+
+> **Đã triển khai ở M0:** `src/common/errors/` (`ERROR` registry, `AppException`, `HttpExceptionFilter`, `validationExceptionFactory`). Registry hiện chứa các mã dùng chung ở bảng này; mã của từng module được thêm vào `error-codes.ts` khi module đó được làm. Lưu ý: request nằm ngoài prefix `/api/v1` do Express trả 404 mặc định, không qua bộ lọc này.
 
 ## 4. Cơ chế kỹ thuật
 

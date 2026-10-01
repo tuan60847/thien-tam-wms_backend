@@ -1,4 +1,3 @@
-import { UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcrypt';
 import { mock, type MockProxy } from 'vitest-mock-extended';
@@ -145,25 +144,21 @@ describe('AuthService', () => {
     it('từ chối khi sai mật khẩu', async () => {
       await expect(
         service.login({ username: 'admin', password: 'sai' }),
-      ).rejects.toThrow(
-        new UnauthorizedException('Sai tài khoản hoặc mật khẩu'),
-      );
+      ).rejects.toMatchObject({ code: 'AUTH_INVALID_CREDENTIALS' });
       expect(rows).toHaveLength(0);
     });
 
     it('từ chối khi username không tồn tại, cùng thông báo với sai mật khẩu', async () => {
       await expect(
         service.login({ username: 'khong-co', password: 'Admin@123' }),
-      ).rejects.toThrow(
-        new UnauthorizedException('Sai tài khoản hoặc mật khẩu'),
-      );
+      ).rejects.toMatchObject({ code: 'AUTH_INVALID_CREDENTIALS' });
     });
 
     it('từ chối tài khoản đã bị khóa', async () => {
       activeUser = makeUser({ trangThai: false });
       await expect(
         service.login({ username: 'admin', password: 'Admin@123' }),
-      ).rejects.toThrow(new UnauthorizedException('Tài khoản đã bị khóa'));
+      ).rejects.toMatchObject({ code: 'AUTH_ACCOUNT_LOCKED' });
       expect(rows).toHaveLength(0);
     });
 
@@ -200,11 +195,11 @@ describe('AuthService', () => {
 
       await expect(
         service.refresh({ refreshToken: first.refreshToken }),
-      ).rejects.toBeInstanceOf(UnauthorizedException);
+      ).rejects.toMatchObject({ code: 'AUTH_SESSION_INVALID' });
       // The new token is revoked too because the old one was reused.
       await expect(
         service.refresh({ refreshToken: next.refreshToken }),
-      ).rejects.toBeInstanceOf(UnauthorizedException);
+      ).rejects.toMatchObject({ code: 'AUTH_SESSION_INVALID' });
       expect(rows.every((row) => row.revokedAt)).toBe(true);
     });
 
@@ -215,7 +210,7 @@ describe('AuthService', () => {
       );
       await expect(
         service.refresh({ refreshToken: expired }),
-      ).rejects.toBeInstanceOf(UnauthorizedException);
+      ).rejects.toMatchObject({ code: 'AUTH_SESSION_INVALID' });
     });
 
     it('từ chối khi expiresAt trong DB đã qua', async () => {
@@ -223,7 +218,7 @@ describe('AuthService', () => {
       rows[0].expiresAt = new Date(Date.now() - 1000);
       await expect(
         service.refresh({ refreshToken: first.refreshToken }),
-      ).rejects.toBeInstanceOf(UnauthorizedException);
+      ).rejects.toMatchObject({ code: 'AUTH_SESSION_INVALID' });
     });
 
     it('từ chối token sai chữ ký', async () => {
@@ -233,7 +228,7 @@ describe('AuthService', () => {
       );
       await expect(
         service.refresh({ refreshToken: forged }),
-      ).rejects.toBeInstanceOf(UnauthorizedException);
+      ).rejects.toMatchObject({ code: 'AUTH_SESSION_INVALID' });
     });
 
     it('từ chối token hợp lệ nhưng không có trong DB', async () => {
@@ -243,7 +238,7 @@ describe('AuthService', () => {
       );
       await expect(
         service.refresh({ refreshToken: unknown }),
-      ).rejects.toBeInstanceOf(UnauthorizedException);
+      ).rejects.toMatchObject({ code: 'AUTH_SESSION_INVALID' });
     });
 
     it('từ chối khi user đã bị khóa sau khi đăng nhập', async () => {
@@ -251,7 +246,7 @@ describe('AuthService', () => {
       activeUser = { ...activeUser, trangThai: false };
       await expect(
         service.refresh({ refreshToken: first.refreshToken }),
-      ).rejects.toThrow(new UnauthorizedException('Tài khoản đã bị khóa'));
+      ).rejects.toMatchObject({ code: 'AUTH_ACCOUNT_LOCKED' });
     });
   });
 
@@ -266,7 +261,7 @@ describe('AuthService', () => {
       expect(rows[0].revokedAt).toBeInstanceOf(Date);
       await expect(
         service.refresh({ refreshToken: first.refreshToken }),
-      ).rejects.toBeInstanceOf(UnauthorizedException);
+      ).rejects.toMatchObject({ code: 'AUTH_SESSION_INVALID' });
     });
 
     it('không lỗi khi token không tồn tại', async () => {
@@ -285,16 +280,16 @@ describe('AuthService', () => {
     });
 
     it('từ chối user không tồn tại', async () => {
-      await expect(service.validateUser('nope')).rejects.toBeInstanceOf(
-        UnauthorizedException,
-      );
+      await expect(service.validateUser('nope')).rejects.toMatchObject({
+        code: 'AUTH_SESSION_INVALID',
+      });
     });
 
     it('từ chối user đã bị khóa', async () => {
       activeUser = { ...activeUser, trangThai: false };
-      await expect(service.validateUser('user-1')).rejects.toThrow(
-        new UnauthorizedException('Tài khoản đã bị khóa'),
-      );
+      await expect(service.validateUser('user-1')).rejects.toMatchObject({
+        code: 'AUTH_ACCOUNT_LOCKED',
+      });
     });
   });
 });

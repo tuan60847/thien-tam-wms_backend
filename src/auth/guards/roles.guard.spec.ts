@@ -1,4 +1,4 @@
-import { ExecutionContext, ForbiddenException } from '@nestjs/common';
+import type { ExecutionContext } from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
 import { mock } from 'vitest-mock-extended';
 import type { AuthenticatedUser } from '../types/authenticated-user.type.js';
@@ -42,7 +42,7 @@ describe('RolesGuard', () => {
   it('từ chối khi role không khớp', () => {
     const { guard, context } = setup(['ADMIN'], userWithRole('NHAN_VIEN_KHO'));
     expect(() => guard.canActivate(context)).toThrow(
-      new ForbiddenException('Bạn không có quyền truy cập'),
+      expect.objectContaining({ code: 'AUTH_FORBIDDEN' }),
     );
   });
 
@@ -53,11 +53,15 @@ describe('RolesGuard', () => {
 
   it('từ chối khi có @Roles nhưng thiếu request.user', () => {
     const { guard, context } = setup(['ADMIN'], undefined);
-    expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
+    expect(() => guard.canActivate(context)).toThrow(
+      expect.objectContaining({ code: 'AUTH_FORBIDDEN' }),
+    );
   });
 
   it('từ chối khi user không có role', () => {
     const { guard, context } = setup(['ADMIN'], userWithRole(null));
-    expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
+    expect(() => guard.canActivate(context)).toThrow(
+      expect.objectContaining({ code: 'AUTH_FORBIDDEN' }),
+    );
   });
 });

@@ -41,6 +41,8 @@ yarn start:dev
 
 Tài khoản dev mặc định: `admin` / `Admin@123`.
 
+API nằm dưới `/api/v1` (ví dụ `POST /api/v1/auth/login`); Swagger tại `/api/docs` (bật mặc định ở dev); health check tại `/api/v1/health`.
+
 ## Project setup
 
 ```bash

@@ -1,9 +1,8 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { Test } from '@nestjs/testing';
+import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types.js';
-import { AppModule } from '../src/app.module.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
+import { createTestApp } from './helpers/create-app.js';
 import { ProtectedRouteController } from './fixtures/protected-route.controller.js';
 import {
   migrateTestDatabase,
@@ -23,7 +22,7 @@ describe('Auth (e2e)', () => {
 
   const http = () => request(app.getHttpServer());
   const login = (username: string, password = TEST_PASSWORD) =>
-    http().post('/auth/login').send({ username, password });
+    http().post('/api/v1/auth/login').send({ username, password });
   const loginOk = async (username: string): Promise<LoginBody> => {
     const res = await login(username).expect(200);
     return res.body as LoginBody;
@@ -32,15 +31,7 @@ describe('Auth (e2e)', () => {
   beforeAll(async () => {
     migrateTestDatabase();
 
-    const moduleRef = await Test.createTestingModule({
-      imports: [AppModule],
-      controllers: [ProtectedRouteController],
-    }).compile();
-    app = moduleRef.createNestApplication();
-    app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }),
-    );
-    await app.init();
+    app = await createTestApp({ controllers: [ProtectedRouteController] });
     prisma = app.get(PrismaService);
     await resetAndSeed(prisma);
   });
@@ -69,22 +60,29 @@ describe('Auth (e2e)', () => {
 
     it('sai mật khẩu trả 401 kèm thông báo tiếng Việt', async () => {
       const res = await login('admin', 'sai-mat-khau').expect(401);
-      expect((res.body as { message: string }).message).toBe(
-        'Sai tài khoản hoặc mật khẩu',
-      );
+      expect(res.body).toMatchObject({
+        code: 'AUTH_INVALID_CREDENTIALS',
+        message: 'Sai tài khoản hoặc mật khẩu',
+        requestId: expect.any(String),
+      });
     });
 
     it('tài khoản bị khóa trả 401', async () => {
       const res = await login('locked').expect(401);
-      expect((res.body as { message: string }).message).toBe(
-        'Tài khoản đã bị khóa',
-      );
+      expect(res.body).toMatchObject({
+        code: 'AUTH_ACCOUNT_LOCKED',
+        message: 'Tài khoản đã bị khóa',
+        requestId: expect.any(String),
+      });
     });
 
     it('body thiếu trường hoặc thừa trường trả 400', async () => {
-      await http().post('/auth/login').send({ username: 'admin' }).expect(400);
       await http()
-        .post('/auth/login')
+        .post('/api/v1/auth/login')
+        .send({ username: 'admin' })
+        .expect(400);
+      await http()
+        .post('/api/v1/auth/login')
         .send({ username: 'admin', password: TEST_PASSWORD, extra: 1 })
         .expect(400);
     });
@@ -92,13 +90,13 @@ describe('Auth (e2e)', () => {
 
   describe('GET /auth/me', () => {
     it('không có token trả 401', async () => {
-      await http().get('/auth/me').expect(401);
+      await http().get('/api/v1/auth/me').expect(401);
     });
 
     it('có token trả 200 đúng shape', async () => {
       const { accessToken } = await loginOk('admin');
       const res = await http()
-        .get('/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200);
 
@@ -120,12 +118,14 @@ describe('Auth (e2e)', () => {
       });
 
       const res = await http()
-        .get('/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(401);
-      expect((res.body as { message: string }).message).toBe(
-        'Tài khoản đã bị khóa',
-      );
+      expect(res.body).toMatchObject({
+        code: 'AUTH_ACCOUNT_LOCKED',
+        message: 'Tài khoản đã bị khóa',
+        requestId: expect.any(String),
+      });
 
       await prisma.user.update({
         where: { username: 'tam' },
@@ -138,7 +138,7 @@ describe('Auth (e2e)', () => {
     it('admin truy cập route @Roles("ADMIN") được', async () => {
       const { accessToken } = await loginOk('admin');
       await http()
-        .get('/test-protected/admin-only')
+        .get('/api/v1/test-protected/admin-only')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(200, { ok: true });
     });
@@ -146,16 +146,18 @@ describe('Auth (e2e)', () => {
     it('user khác role nhận 403', async () => {
       const { accessToken } = await loginOk('kho');
       const res = await http()
-        .get('/test-protected/admin-only')
+        .get('/api/v1/test-protected/admin-only')
         .set('Authorization', `Bearer ${accessToken}`)
         .expect(403);
-      expect((res.body as { message: string }).message).toBe(
-        'Bạn không có quyền truy cập',
-      );
+      expect(res.body).toMatchObject({
+        code: 'AUTH_FORBIDDEN',
+        message: 'Bạn không có quyền truy cập',
+        requestId: expect.any(String),
+      });
     });
 
     it('không có token nhận 401 thay vì 403', async () => {
-      await http().get('/test-protected/admin-only').expect(401);
+      await http().get('/api/v1/test-protected/admin-only').expect(401);
     });
   });
 
@@ -164,20 +166,20 @@ describe('Auth (e2e)', () => {
       const first = await loginOk('admin');
 
       const res = await http()
-        .post('/auth/refresh')
+        .post('/api/v1/auth/refresh')
         .send({ refreshToken: first.refreshToken })
         .expect(200);
       const next = res.body as { accessToken: string; refreshToken: string };
       expect(next.refreshToken).not.toBe(first.refreshToken);
 
       await http()
-        .get('/auth/me')
+        .get('/api/v1/auth/me')
         .set('Authorization', `Bearer ${next.accessToken}`)
         .expect(200);
 
       // The old refresh token was rotated, so it cannot be reused.
       await http()
-        .post('/auth/refresh')
+        .post('/api/v1/auth/refresh')
         .send({ refreshToken: first.refreshToken })
         .expect(401);
     });
@@ -185,13 +187,19 @@ describe('Auth (e2e)', () => {
     it('sau logout refresh token cũ bị từ chối', async () => {
       const { refreshToken } = await loginOk('admin');
 
-      await http().post('/auth/logout').send({ refreshToken }).expect(204);
-      await http().post('/auth/refresh').send({ refreshToken }).expect(401);
+      await http()
+        .post('/api/v1/auth/logout')
+        .send({ refreshToken })
+        .expect(204);
+      await http()
+        .post('/api/v1/auth/refresh')
+        .send({ refreshToken })
+        .expect(401);
     });
 
     it('refresh với token rác trả 401', async () => {
       await http()
-        .post('/auth/refresh')
+        .post('/api/v1/auth/refresh')
         .send({ refreshToken: 'khong-phai-jwt' })
         .expect(401);
     });
