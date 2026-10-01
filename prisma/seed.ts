@@ -43,7 +43,9 @@ async function main() {
     },
   });
 
-  process.stdout.write(`Seed xong: ${admin.username} (${admin.maNV}) - role ${adminRole.maRole}\n`);
+  process.stdout.write(
+    `Seed xong: ${admin.username} (${admin.maNV}) - role ${adminRole.maRole}\n`,
+  );
 }
 
 main()

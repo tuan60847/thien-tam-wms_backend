@@ -25,19 +25,16 @@ function requireSecret(name: string): string {
   return value;
 }
 
-export const authConfig = registerAs(
-  'auth',
-  (): AuthConfig => {
-    const accessSecret = requireSecret('JWT_ACCESS_SECRET');
-    const refreshSecret = requireSecret('JWT_REFRESH_SECRET');
-    if (accessSecret === refreshSecret) {
-      throw new Error('JWT_ACCESS_SECRET và JWT_REFRESH_SECRET phải khác nhau');
-    }
-    return {
-      accessSecret,
-      refreshSecret,
-      accessTtl: requireEnv('JWT_ACCESS_TTL'),
-      refreshTtl: requireEnv('JWT_REFRESH_TTL'),
-    };
-  },
-);
+export const authConfig = registerAs('auth', (): AuthConfig => {
+  const accessSecret = requireSecret('JWT_ACCESS_SECRET');
+  const refreshSecret = requireSecret('JWT_REFRESH_SECRET');
+  if (accessSecret === refreshSecret) {
+    throw new Error('JWT_ACCESS_SECRET và JWT_REFRESH_SECRET phải khác nhau');
+  }
+  return {
+    accessSecret,
+    refreshSecret,
+    accessTtl: requireEnv('JWT_ACCESS_TTL'),
+    refreshTtl: requireEnv('JWT_REFRESH_TTL'),
+  };
+});
