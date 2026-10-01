@@ -10,7 +10,6 @@ generator client {
 
 datasource db {
   provider = "mysql" // đổi thành "postgresql" nếu bạn dùng Postgres
-  url      = env("DATABASE_URL")
 }
 
 // ------------------------------------------------------------
@@ -50,7 +49,24 @@ model User {
   phieuXuatHangTao  PhieuXuatHang[]  @relation("PhieuXuatHangCreatedBy")
   phieuNhapHangTao  PhieuNhapHang[]  @relation("PhieuNhapHangCreatedBy")
 
+  refreshTokens RefreshToken[]
+
   @@map("user")
+}
+
+// Refresh token lưu dạng hash (SHA-256) để logout / rotation hoạt động
+model RefreshToken {
+  id        String    @id @default(uuid())
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  userId String @map("user_id")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_token")
 }
 
 // ------------------------------------------------------------
