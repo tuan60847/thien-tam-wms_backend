@@ -1,7 +1,7 @@
 // ============================================================
 // ThienTamWMS - Prisma Schema
-// Warehouse management system for a pharmaceutical distributor
-// Adapted from the ThienTamWMS ERD
+// Hệ thống quản lý kho thuốc cho nhà phân phối
+// Chuyển thể từ sơ đồ ERD ThienTamWMS
 // ============================================================
 
 generator client {
@@ -9,11 +9,11 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql" // change to "postgresql" if you use Postgres
+  provider = "mysql" // đổi thành "postgresql" nếu bạn dùng Postgres
 }
 
 // ------------------------------------------------------------
-// USER ROLES AND PERMISSIONS
+// PHÂN QUYỀN NGƯỜI DÙNG
 // ------------------------------------------------------------
 
 model Role {
@@ -44,8 +44,8 @@ model User {
   roleId String? @map("role_id")
   role   Role?   @relation(fields: [roleId], references: [id])
 
-  // Documents created by this user; used only for sales / statistics,
-  // not a required business relation.
+  // Các phiếu do user này tạo — chỉ dùng để tính doanh số / thống kê,
+  // không phải quan hệ nghiệp vụ bắt buộc.
   phieuXuatHangTao  PhieuXuatHang[]  @relation("PhieuXuatHangCreatedBy")
   phieuNhapHangTao  PhieuNhapHang[]  @relation("PhieuNhapHangCreatedBy")
 
@@ -70,7 +70,7 @@ model RefreshToken {
 }
 
 // ------------------------------------------------------------
-// PRODUCT CATALOG
+// DANH MỤC HÀNG HÓA
 // ------------------------------------------------------------
 
 model LoaiHang {
@@ -92,10 +92,10 @@ model HangHoa {
   giaNhap        Decimal  @default(0) @map("gia_nhap") @db.Decimal(15, 2)
   giaHienThi     Decimal  @default(0) @map("gia_hien_thi") @db.Decimal(15, 2)
   giaToiThieu    Decimal  @default(0) @map("gia_toi_thieu") @db.Decimal(15, 2)
-  isKeDon        Boolean  @default(false) @map("is_ke_don") // prescription drug
-  isCanGiuLanh   Boolean  @default(false) @map("is_can_giu_lanh") // needs cold storage
-  loaiKiemSoat   String?  @map("loai_kiem_soat") // normal / prescription / specially controlled
-  soDangKy       String?  @map("so_dang_ky") // drug marketing registration number
+  isKeDon        Boolean  @default(false) @map("is_ke_don") // thuốc kê đơn
+  isCanGiuLanh   Boolean  @default(false) @map("is_can_giu_lanh") // cần bảo quản lạnh
+  loaiKiemSoat   String?  @map("loai_kiem_soat") // thường / kê đơn / kiểm soát đặc biệt
+  soDangKy       String?  @map("so_dang_ky") // số đăng ký lưu hành thuốc
   ghiChu         String?  @map("ghi_chu")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
@@ -111,8 +111,8 @@ model HangHoa {
 
 model TyLeQuyDoi {
   id              String  @id @default(uuid())
-  donViTinh       String  @map("don_vi_tinh") // box, blister pack, tablet...
-  soLuongQuyDoi   Int     @map("so_luong_quy_doi") // conversion to the smallest unit
+  donViTinh       String  @map("don_vi_tinh") // hộp, vỉ, viên...
+  soLuongQuyDoi   Int     @map("so_luong_quy_doi") // quy đổi ra đơn vị nhỏ nhất
 
   hangHoaId String  @map("hang_hoa_id")
   hangHoa   HangHoa @relation(fields: [hangHoaId], references: [id])
@@ -121,7 +121,7 @@ model TyLeQuyDoi {
 }
 
 // ------------------------------------------------------------
-// BATCHES AND STOCK
+// LÔ HÀNG & TỒN KHO
 // ------------------------------------------------------------
 
 model SoLo {
@@ -156,7 +156,7 @@ model Kho {
 model ViTri {
   id          String  @id @default(uuid())
   tenViTri    String  @map("ten_vi_tri")
-  isCapDong   Boolean @default(false) @map("is_cap_dong") // cold-storage location
+  isCapDong   Boolean @default(false) @map("is_cap_dong") // vị trí bảo quản lạnh
   ghiChu      String? @map("ghi_chu")
 
   khoId String @map("kho_id")
@@ -167,7 +167,7 @@ model ViTri {
   @@map("vi_tri")
 }
 
-// Many-to-many link entity between SoLo and ViTri
+// Thực thể liên kết nhiều-nhiều giữa SoLo và ViTri
 model TonKho {
   id       String @id @default(uuid())
   soLuong  Int    @default(0) @map("so_luong")
@@ -178,12 +178,12 @@ model TonKho {
   viTriId String @map("vi_tri_id")
   viTri   ViTri  @relation(fields: [viTriId], references: [id])
 
-  @@unique([soLoId, viTriId]) // each batch has at most one stock row per location
+  @@unique([soLoId, viTriId]) // mỗi lô ở mỗi vị trí chỉ có 1 dòng tồn
   @@map("ton_kho")
 }
 
 // ------------------------------------------------------------
-// CUSTOMERS (PHARMACIES) AND SUPPLIERS
+// KHÁCH HÀNG (NHÀ THUỐC) & NHÀ CUNG CẤP
 // ------------------------------------------------------------
 
 model KhachHang {
@@ -195,10 +195,10 @@ model KhachHang {
   email          String?
   SDT            String?
   nguoiDaiDien   String? @map("nguoi_dai_dien")
-  SDTNDD         String? @map("sdt_ndd") // representative phone number
+  SDTNDD         String? @map("sdt_ndd") // SĐT người đại diện
   trangThai      String  @default("hoat_dong") @map("trang_thai")
 
-  // Proposed additions for compliance (not in the original ERD; add when needed)
+  // Đề xuất bổ sung để tuân thủ (chưa có trong bản vẽ gốc, nên thêm khi cần)
   soGiayPhepKinhDoanh String?   @map("so_giay_phep_kinh_doanh")
   ngayCapGPKD         DateTime? @map("ngay_cap_gpkd")
   ngayHetHanGPKD      DateTime? @map("ngay_het_han_gpkd")
@@ -232,7 +232,7 @@ model NhaCungCap {
 }
 
 // ------------------------------------------------------------
-// TRANSPORT VEHICLES
+// PHƯƠNG TIỆN VẬN CHUYỂN
 // ------------------------------------------------------------
 
 model PhuongTienVanChuyen {
@@ -246,7 +246,7 @@ model PhuongTienVanChuyen {
 }
 
 // ------------------------------------------------------------
-// GOODS RECEIPTS (INBOUND)
+// PHIẾU NHẬP HÀNG
 // ------------------------------------------------------------
 
 model PhieuNhapHang {
@@ -262,7 +262,7 @@ model PhieuNhapHang {
   phuongTienVanChuyenId String?               @map("phuong_tien_van_chuyen_id")
   phuongTienVanChuyen   PhuongTienVanChuyen?  @relation(fields: [phuongTienVanChuyenId], references: [id])
 
-  // Used for sales / statistics by creator; not a required business key
+  // Dùng để tính doanh số / thống kê theo người tạo, không phải khóa nghiệp vụ bắt buộc
   createdById String? @map("created_by_id")
   createdBy   User?   @relation("PhieuNhapHangCreatedBy", fields: [createdById], references: [id])
 
@@ -281,8 +281,8 @@ model ChiTietPhieuNhapHang {
   phieuNhapHangId String        @map("phieu_nhap_hang_id")
   phieuNhapHang   PhieuNhapHang @relation(fields: [phieuNhapHangId], references: [id])
 
-  // One batch can have many receipt lines (received several times),
-  // but each receipt line belongs to exactly one batch
+  // 1 lô có thể có nhiều dòng chi tiết nhập hàng (nhập nhiều lần),
+  // nhưng 1 dòng chi tiết nhập hàng chỉ ứng với đúng 1 lô
   soLoId String @map("so_lo_id")
   soLo   SoLo   @relation(fields: [soLoId], references: [id])
 
@@ -290,7 +290,7 @@ model ChiTietPhieuNhapHang {
 }
 
 // ------------------------------------------------------------
-// GOODS ISSUES (OUTBOUND)
+// PHIẾU XUẤT HÀNG
 // ------------------------------------------------------------
 
 model PhieuXuatHang {
@@ -304,7 +304,7 @@ model PhieuXuatHang {
   khachHangId String    @map("khach_hang_id")
   khachHang   KhachHang @relation(fields: [khachHangId], references: [id])
 
-  // Used for sales / statistics by creator; not a required business key
+  // Dùng để tính doanh số / thống kê theo người tạo, không phải khóa nghiệp vụ bắt buộc
   createdById String? @map("created_by_id")
   createdBy   User?   @relation("PhieuXuatHangCreatedBy", fields: [createdById], references: [id])
 
@@ -323,7 +323,7 @@ model ChiTietPhieuXuatHang {
   phieuXuatHangId String        @map("phieu_xuat_hang_id")
   phieuXuatHang   PhieuXuatHang @relation(fields: [phieuXuatHangId], references: [id])
 
-  // Batch traceability: each issue line draws from one specific batch
+  // Truy vết lô: 1 dòng xuất lấy hàng từ 1 lô cụ thể
   soLoId String @map("so_lo_id")
   soLo   SoLo   @relation(fields: [soLoId], references: [id])
 
@@ -331,7 +331,7 @@ model ChiTietPhieuXuatHang {
 }
 
 // ------------------------------------------------------------
-// RECEIVABLES / PAYABLES: COLLECTIONS FROM CUSTOMERS / PAYMENTS TO SUPPLIERS
+// CÔNG NỢ: THU TỪ KHÁCH HÀNG / THANH TOÁN CHO NHÀ CUNG CẤP
 // ------------------------------------------------------------
 
 model PhieuThuCongNo {
