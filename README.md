@@ -25,6 +25,22 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+## Auth
+
+Đăng nhập JWT (access + refresh có xoay vòng) và phân quyền theo role. Tài liệu đầy đủ: [docs/auth/README.md](docs/auth/README.md).
+
+Chạy lần đầu (cần MySQL; repo dùng yarn, có thể thay bằng npm):
+
+```bash
+cp .env.example .env
+yarn install
+npx prisma migrate dev
+npx prisma db seed
+yarn start:dev
+```
+
+Tài khoản dev mặc định: `admin` / `Admin@123`.
+
 ## Project setup
 
 ```bash
