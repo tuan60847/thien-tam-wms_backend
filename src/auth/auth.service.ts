@@ -7,6 +7,7 @@ import { authConfig } from '../config/auth.config.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService, type UserWithRole } from '../users/users.service.js';
 import type { LoginDto } from './dto/login.dto.js';
+import type { RefreshTokenDto } from './dto/refresh-token.dto.js';
 import type { AuthenticatedUser } from './types/authenticated-user.type.js';
 import type {
   JwtPayload,
@@ -25,6 +26,7 @@ export interface LoginResult extends IssuedTokens {
 export const BCRYPT_COST = 10;
 
 const MSG_BAD_CREDENTIALS = 'Sai tài khoản hoặc mật khẩu';
+const MSG_INVALID_SESSION = 'Phiên đăng nhập không hợp lệ';
 const MSG_LOCKED = 'Tài khoản đã bị khóa';
 
 // Hash giả để thời gian phản hồi khi username không tồn tại gần với khi sai mật khẩu.
@@ -61,10 +63,80 @@ export class AuthService {
     return { ...tokens, user: this.toAuthenticatedUser(user) };
   }
 
+  async refresh(dto: RefreshTokenDto): Promise<IssuedTokens> {
+    try {
+      await this.jwt.verifyAsync<RefreshTokenPayload>(dto.refreshToken, {
+        secret: this.config.refreshSecret,
+      });
+    } catch {
+      throw new UnauthorizedException(MSG_INVALID_SESSION);
+    }
+
+    const stored = await this.prisma.refreshToken.findUnique({
+      where: { tokenHash: hashToken(dto.refreshToken) },
+    });
+    if (!stored) {
+      throw new UnauthorizedException(MSG_INVALID_SESSION);
+    }
+    if (stored.revokedAt) {
+      // Token đã xoay vòng mà vẫn bị dùng lại: coi như bị lộ, thu hồi cả phiên.
+      await this.revokeAllForUser(stored.userId);
+      throw new UnauthorizedException(MSG_INVALID_SESSION);
+    }
+    if (stored.expiresAt <= new Date()) {
+      throw new UnauthorizedException(MSG_INVALID_SESSION);
+    }
+
+    const user = await this.users.findById(stored.userId);
+    if (!user) {
+      throw new UnauthorizedException(MSG_INVALID_SESSION);
+    }
+    if (!user.trangThai) {
+      throw new UnauthorizedException(MSG_LOCKED);
+    }
+
+    const { accessToken, refreshToken, refreshExpiresAt } =
+      await this.signTokens(user);
+
+    await this.prisma.$transaction(async (tx) => {
+      // Điều kiện revokedAt: null chặn hai request refresh đồng thời cùng thành công.
+      const { count } = await tx.refreshToken.updateMany({
+        where: { id: stored.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+      if (count !== 1) {
+        throw new UnauthorizedException(MSG_INVALID_SESSION);
+      }
+      await tx.refreshToken.create({
+        data: {
+          userId: user.id,
+          tokenHash: hashToken(refreshToken),
+          expiresAt: refreshExpiresAt,
+        },
+      });
+    });
+
+    return { accessToken, refreshToken };
+  }
+
+  async logout(dto: RefreshTokenDto): Promise<void> {
+    await this.prisma.refreshToken.updateMany({
+      where: { tokenHash: hashToken(dto.refreshToken), revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  private async revokeAllForUser(userId: string): Promise<void> {
+    await this.prisma.refreshToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+  }
+
   async validateUser(userId: string): Promise<AuthenticatedUser> {
     const user = await this.users.findById(userId);
     if (!user) {
-      throw new UnauthorizedException('Phiên đăng nhập không hợp lệ');
+      throw new UnauthorizedException(MSG_INVALID_SESSION);
     }
     if (!user.trangThai) {
       throw new UnauthorizedException(MSG_LOCKED);
