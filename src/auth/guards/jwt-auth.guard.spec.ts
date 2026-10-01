@@ -1,0 +1,49 @@
+import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import type { Reflector } from '@nestjs/core';
+import { mock } from 'vitest-mock-extended';
+import { JwtAuthGuard } from './jwt-auth.guard.js';
+
+// Lớp cha do AuthGuard('jwt') sinh ra; chặn canActivate để không chạy Passport thật.
+const passportGuard = Object.getPrototypeOf(JwtAuthGuard.prototype) as {
+  canActivate: (context: ExecutionContext) => unknown;
+};
+
+describe('JwtAuthGuard', () => {
+  const context = mock<ExecutionContext>();
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function setup(isPublic: boolean | undefined) {
+    const reflector = mock<Reflector>();
+    reflector.getAllAndOverride.mockReturnValue(isPublic);
+    const parent = vi.spyOn(passportGuard, 'canActivate').mockReturnValue(true);
+    return { guard: new JwtAuthGuard(reflector), parent };
+  }
+
+  it('bỏ qua kiểm tra token khi route có @Public()', () => {
+    const { guard, parent } = setup(true);
+    expect(guard.canActivate(context)).toBe(true);
+    expect(parent).not.toHaveBeenCalled();
+  });
+
+  it('bắt buộc xác thực khi route không public', () => {
+    const { guard, parent } = setup(undefined);
+    expect(guard.canActivate(context)).toBe(true);
+    expect(parent).toHaveBeenCalledOnce();
+  });
+
+  it('handleRequest ném lại lỗi từ validateUser', () => {
+    const { guard } = setup(false);
+    const locked = new UnauthorizedException('Tài khoản đã bị khóa');
+    expect(() => guard.handleRequest(locked, false)).toThrow(locked);
+  });
+
+  it('handleRequest trả 401 khi không có user', () => {
+    const { guard } = setup(false);
+    expect(() => guard.handleRequest(null, false)).toThrow(
+      UnauthorizedException,
+    );
+  });
+});
