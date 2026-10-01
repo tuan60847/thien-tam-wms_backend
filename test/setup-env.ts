@@ -1,4 +1,4 @@
 import { config } from 'dotenv';
 
-// Ghi đè .env: e2e luôn chạy trên DB test.
+// Override .env: e2e must always run against the test database.
 config({ path: '.env.test', override: true });

@@ -29,7 +29,7 @@ const MSG_BAD_CREDENTIALS = 'Sai tài khoản hoặc mật khẩu';
 const MSG_INVALID_SESSION = 'Phiên đăng nhập không hợp lệ';
 const MSG_LOCKED = 'Tài khoản đã bị khóa';
 
-// Hash giả để thời gian phản hồi khi username không tồn tại gần với khi sai mật khẩu.
+// Dummy hash so response time for an unknown username stays close to a wrong password.
 const DUMMY_HASH = bcrypt.hashSync(randomUUID(), BCRYPT_COST);
 
 export function hashToken(token: string): string {
@@ -79,7 +79,7 @@ export class AuthService {
       throw new UnauthorizedException(MSG_INVALID_SESSION);
     }
     if (stored.revokedAt) {
-      // Token đã xoay vòng mà vẫn bị dùng lại: coi như bị lộ, thu hồi cả phiên.
+      // A rotated token is being reused: treat it as leaked and revoke every session.
       await this.revokeAllForUser(stored.userId);
       throw new UnauthorizedException(MSG_INVALID_SESSION);
     }
@@ -99,7 +99,7 @@ export class AuthService {
       await this.signTokens(user);
 
     await this.prisma.$transaction(async (tx) => {
-      // Điều kiện revokedAt: null chặn hai request refresh đồng thời cùng thành công.
+      // The revokedAt: null condition stops two concurrent refreshes from both succeeding.
       const { count } = await tx.refreshToken.updateMany({
         where: { id: stored.id, revokedAt: null },
         data: { revokedAt: new Date() },
@@ -186,7 +186,7 @@ export class AuthService {
     };
   }
 
-  // Role bị vô hiệu hóa được coi như không có role.
+  // A deactivated role is treated as no role.
   private effectiveRole(user: UserWithRole) {
     return user.role?.trangThai ? user.role : null;
   }

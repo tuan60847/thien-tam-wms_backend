@@ -21,7 +21,7 @@ interface StoredToken {
   revokedAt: Date | null;
 }
 
-// Stub Prisma trong bộ nhớ, chỉ hỗ trợ các thao tác AuthService dùng trên refreshToken.
+// In-memory Prisma stub covering only the refreshToken operations AuthService uses.
 function createFakePrisma() {
   const rows: StoredToken[] = [];
   let seq = 0;
@@ -201,7 +201,7 @@ describe('AuthService', () => {
       await expect(
         service.refresh({ refreshToken: first.refreshToken }),
       ).rejects.toBeInstanceOf(UnauthorizedException);
-      // Token mới cũng bị thu hồi vì token cũ bị dùng lại.
+      // The new token is revoked too because the old one was reused.
       await expect(
         service.refresh({ refreshToken: next.refreshToken }),
       ).rejects.toBeInstanceOf(UnauthorizedException);

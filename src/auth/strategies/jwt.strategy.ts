@@ -20,7 +20,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  // Passport chỉ kiểm tra chữ ký và hạn; tra cứu user nằm ở AuthService.
+  // Passport only checks signature and expiry; the user lookup lives in AuthService.
   validate(payload: JwtPayload): Promise<AuthenticatedUser> {
     return this.authService.validateUser(payload.sub);
   }

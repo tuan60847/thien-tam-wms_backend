@@ -22,7 +22,7 @@ import { JwtStrategy } from './strategies/jwt.strategy.js';
   providers: [
     AuthService,
     JwtStrategy,
-    // Thứ tự đăng ký = thứ tự chạy: JwtAuthGuard trước RolesGuard.
+    // Registration order is execution order: JwtAuthGuard runs before RolesGuard.
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],

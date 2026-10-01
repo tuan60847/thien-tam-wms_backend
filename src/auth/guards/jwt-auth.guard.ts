@@ -25,7 +25,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     return super.canActivate(context);
   }
 
-  // Giữ nguyên lỗi từ validateUser (ví dụ "Tài khoản đã bị khóa").
+  // Keep errors from validateUser as-is (e.g. the "account locked" message).
   handleRequest<TUser = AuthenticatedUser>(
     err: unknown,
     user: TUser | false,

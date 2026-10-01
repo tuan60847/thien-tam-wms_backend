@@ -30,7 +30,7 @@ async function main() {
     },
   });
 
-  // Không ghi đè mật khẩu ở lần chạy sau, tránh reset mật khẩu đã đổi.
+  // Do not overwrite the password on later runs, so a changed password is not reset.
   const admin = await prisma.user.upsert({
     where: { username: 'admin' },
     update: { roleId: adminRole.id },

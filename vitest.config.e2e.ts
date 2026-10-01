@@ -8,7 +8,7 @@ export default defineConfig({
     root: './',
     include: ['**/*.e2e-spec.ts'],
     setupFiles: ['./test/setup-env.ts'],
-    // Các file e2e dùng chung một DB test nên chạy tuần tự.
+    // e2e files share one test database, so run them sequentially.
     fileParallelism: false,
     testTimeout: 30_000,
     hookTimeout: 60_000,

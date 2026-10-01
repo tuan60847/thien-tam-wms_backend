@@ -175,7 +175,7 @@ describe('Auth (e2e)', () => {
         .set('Authorization', `Bearer ${next.accessToken}`)
         .expect(200);
 
-      // Refresh token cũ đã xoay vòng nên không dùng lại được.
+      // The old refresh token was rotated, so it cannot be reused.
       await http()
         .post('/auth/refresh')
         .send({ refreshToken: first.refreshToken })
