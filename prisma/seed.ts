@@ -1,43 +1,55 @@
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
+import { PrismaMariaDb } from '@prisma/adapter-mariadb';
+import bcrypt from 'bcrypt';
 
-const prisma = new PrismaClient();
+const BCRYPT_COST = 10;
+
+const prisma = new PrismaClient({
+  adapter: new PrismaMariaDb(process.env.DATABASE_URL!),
+});
 
 async function main() {
-  const existingAdmin = await prisma.user.findFirst({
-    where: {
-      OR: [
-        { username: 'admin' },
-        { email: 'admin@nhatro.com' }
-      ]
-    }
+  const adminRole = await prisma.role.upsert({
+    where: { maRole: 'ADMIN' },
+    update: {},
+    create: {
+      maRole: 'ADMIN',
+      tenRole: 'Quản trị viên',
+      moTa: 'Toàn quyền hệ thống',
+    },
   });
 
-  if (existingAdmin) {
-    console.log('Admin đã tồn tại, bỏ qua...');
-    return;
-  }
+  await prisma.role.upsert({
+    where: { maRole: 'NHAN_VIEN_KHO' },
+    update: {},
+    create: {
+      maRole: 'NHAN_VIEN_KHO',
+      tenRole: 'Nhân viên kho',
+      moTa: 'Nhập, xuất và kiểm kê hàng hóa',
+    },
+  });
 
-  const salt = await bcrypt.genSalt(10);
-  const hashedPassword = await bcrypt.hash('adminadmin', salt);
-
-  const admin = await prisma.user.create({
-    data: {
+  // Không ghi đè mật khẩu ở lần chạy sau, tránh reset mật khẩu đã đổi.
+  const admin = await prisma.user.upsert({
+    where: { username: 'admin' },
+    update: { roleId: adminRole.id },
+    create: {
+      maNV: 'NV0001',
       username: 'admin',
-      email: `admin@${process.env.DOMAIN || 'nhatro.com'}`,
-      password: hashedPassword,
-      role: 'admin',
-    }
+      hoTen: 'Quản trị viên',
+      password: await bcrypt.hash('Admin@123', BCRYPT_COST),
+      roleId: adminRole.id,
+    },
   });
 
-  console.log(`✅ Đã tạo admin: ${admin.username} / ${admin.email}`);
-  console.log(`🔑 Mật khẩu mặc định: adminadmin`);
+  process.stdout.write(`Seed xong: ${admin.username} (${admin.maNV}) - role ${adminRole.maRole}\n`);
 }
 
 main()
   .catch((e) => {
     console.error(e);
-    process.exit(1);
+    process.exitCode = 1;
   })
   .finally(async () => {
     await prisma.$disconnect();
