@@ -5,8 +5,10 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import {
   AuthService,
   type IssuedTokens,
@@ -24,7 +26,8 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
-  @ApiOperation({ summary: 'Đăng nhập' })
+  @UseGuards(ThrottlerGuard)
+  @ApiOperation({ summary: 'Đăng nhập (giới hạn theo IP mỗi phút)' })
   @Post('login')
   @HttpCode(200)
   login(@Body() dto: LoginDto): Promise<LoginResult> {

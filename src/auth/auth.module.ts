@@ -4,6 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { authConfig } from '../config/auth.config.js';
+import { RefreshTokenModule } from './refresh-token/refresh-token.module.js';
 import { UsersModule } from '../users/users.module.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
@@ -15,6 +16,7 @@ import { JwtStrategy } from './strategies/jwt.strategy.js';
   imports: [
     ConfigModule.forFeature(authConfig),
     UsersModule,
+    RefreshTokenModule,
     PassportModule,
     JwtModule.register({}),
   ],

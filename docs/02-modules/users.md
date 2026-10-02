@@ -59,7 +59,7 @@ Route `/users/me/*` khai báo **trước** `/users/:id` để không bị `:id` 
 - BR-02: `username` và `email` unique không phân biệt hoa/thường (đã chuẩn hóa thường).
 - BR-03: Role được gán phải tồn tại và `trangThai = true` (`RolesService.assertAssignable`).
 - BR-04: Không tự đổi role của chính mình, không tự khóa chính mình (`USER_CANNOT_MODIFY_SELF`).
-- BR-05: Luôn còn ít nhất **một** user `ADMIN` đang hoạt động: chặn khóa / hạ role user admin cuối cùng (`USER_LAST_ADMIN`). Đếm trong transaction.
+- BR-05: Luôn còn ít nhất **một** user `ADMIN` đang hoạt động: chặn khóa / hạ role user admin cuối cùng (`USER_LAST_ADMIN`). **Cài đặt:** câu lệnh đầu tiên của transaction `update` là `SELECT … FROM role WHERE ma_role='ADMIN' FOR UPDATE`, để các lần cập nhật user chạy tuần tự *trước khi* transaction lấy snapshot đọc; nếu đếm admin mà không khóa trước thì hai admin hạ quyền nhau đồng thời cùng thấy "còn admin kia" và cùng thành công (đã tái hiện bằng e2e). Lưu ý: vì `update` yêu cầu người gọi là admin đang hoạt động nên qua API tuần tự không bao giờ chạm nhánh này; ràng buộc chỉ phát huy khi đồng thời hoặc token cũ.
 - BR-06: Khóa user, đổi role, đặt lại mật khẩu, đổi mật khẩu ⇒ thu hồi toàn bộ refresh token của user đó (cùng transaction). Access token cũ chết ngay ở request kế (vì `validateUser` đọc DB).
 - BR-07: Đổi mật khẩu của mình cần `oldPassword` đúng; sai → `USER_OLD_PASSWORD_WRONG`. Mật khẩu mới ≠ cũ.
 - BR-08: Không có xóa user; muốn ngừng dùng thì khóa.

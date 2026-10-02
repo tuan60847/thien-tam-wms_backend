@@ -9,6 +9,8 @@ export interface AppConfig {
   corsOrigins: string[];
   trustProxy: number | false;
   logLevel: LogLevel;
+  // Max POST /auth/login attempts per minute per IP.
+  loginRateLimit: number;
   swaggerEnabled: boolean;
   swaggerUser: string | null;
   swaggerPassword: string | null;
@@ -63,6 +65,11 @@ export function loadAppConfig(env: NodeJS.ProcessEnv): AppConfig {
     throw new Error(`LOG_LEVEL không hợp lệ: ${env.LOG_LEVEL}`);
   }
 
+  const loginRateLimit = Number(env.LOGIN_RATE_LIMIT ?? 5);
+  if (!Number.isInteger(loginRateLimit) || loginRateLimit < 1) {
+    throw new Error(`LOGIN_RATE_LIMIT không hợp lệ: ${env.LOGIN_RATE_LIMIT}`);
+  }
+
   const trustProxy = env.TRUST_PROXY ? Number(env.TRUST_PROXY) : false;
   if (
     trustProxy !== false &&
@@ -96,6 +103,7 @@ export function loadAppConfig(env: NodeJS.ProcessEnv): AppConfig {
       .filter(Boolean),
     trustProxy,
     logLevel,
+    loginRateLimit,
     swaggerEnabled,
     swaggerUser,
     swaggerPassword,

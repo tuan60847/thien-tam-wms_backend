@@ -4,6 +4,7 @@ import { mock, type MockProxy } from 'vitest-mock-extended';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import type { UserWithRole, UsersService } from '../users/users.service.js';
 import { AuthService, hashToken } from './auth.service.js';
+import { RefreshTokenService } from './refresh-token/refresh-token.service.js';
 
 const config = {
   accessSecret: 'unit-test-access-secret-0123456789abcdef',
@@ -109,7 +110,13 @@ describe('AuthService', () => {
     users.findById.mockImplementation(async (id) =>
       id === activeUser.id ? activeUser : null,
     );
-    service = new AuthService(users, fake.prisma, jwt, config);
+    service = new AuthService(
+      users,
+      fake.prisma,
+      jwt,
+      config,
+      new RefreshTokenService(fake.prisma),
+    );
   });
 
   describe('login', () => {

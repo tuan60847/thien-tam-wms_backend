@@ -37,9 +37,11 @@ Phụ thuộc: không. Là điều kiện cho mọi milestone sau.
 
 **Kết quả thực tế M0:** xong tất cả mục trên trừ: `helmet`/CORS cấu hình qua env (xong), rate limit login (để M1 cùng `@nestjs/throttler`), `createdById`/`updatedById` (thêm cùng module cần dùng), `P-17`/`P-21` và các trường phiếu P-07…P-10 (thêm ở milestone tương ứng). `@nestjs/observe` đã gỡ. Chi tiết trong báo cáo cuối M0.
 
-## M1 — Định danh (M)
+## M1 — Định danh (M) — ✅ đã triển khai (2026-10-02)
 
 `roles` → `users`. Lý do làm trước: cần có user thật ở nhiều role để test phân quyền ở mọi module sau; Auth đã xong nên chỉ còn quản lý user/role. Thêm `@nestjs/throttler` cho login.
+
+**Kết quả thực tế M1:** `RolesModule` (3 endpoint), `UsersModule` (7 endpoint), `RefreshTokenModule` tách khỏi Auth, giới hạn đăng nhập theo IP (`LOGIN_RATE_LIMIT`, mặc định 5/phút), validator `IsStrongPassword`/`IsUsername`, transformer `Trim`/`LowerTrim`/`ToBoolean`. Phát hiện và sửa khi viết e2e: ràng buộc "luôn còn một admin" không an toàn khi hai admin hạ quyền nhau đồng thời — xem `users.md` BR-05.
 
 ## M2 — Danh mục hàng hóa (M)
 

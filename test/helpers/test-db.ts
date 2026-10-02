@@ -1,5 +1,6 @@
 import { execSync } from 'node:child_process';
 import bcrypt from 'bcrypt';
+import { ROLE_META } from '../../src/auth/roles.constants.js';
 import type { PrismaService } from '../../src/prisma/prisma.service.js';
 
 export const TEST_PASSWORD = 'Test@12345';
@@ -21,53 +22,53 @@ export function migrateTestDatabase(): void {
   });
 }
 
-export async function resetAndSeed(prisma: PrismaService): Promise<void> {
+export interface SeededRoles {
+  ADMIN: string;
+  QUAN_LY_KHO: string;
+  NHAN_VIEN_KHO: string;
+  KE_TOAN: string;
+}
+
+// Wipes the test database tables used so far and seeds 4 roles and 6 users
+// (admin, quanly, kho, ketoan, locked, tam). The NV counter is set so users
+// created through the API start at NV0007.
+export async function resetAndSeed(
+  prisma: PrismaService,
+): Promise<SeededRoles> {
   assertTestDatabase();
+  await prisma.nhatKyHeThong.deleteMany();
   await prisma.refreshToken.deleteMany();
   await prisma.user.deleteMany();
   await prisma.role.deleteMany();
+  await prisma.boDemMa.deleteMany();
 
-  const [admin, nhanVien] = await Promise.all([
-    prisma.role.create({
-      data: { maRole: 'ADMIN', tenRole: 'Quản trị viên' },
-    }),
-    prisma.role.create({
-      data: { maRole: 'NHAN_VIEN_KHO', tenRole: 'Nhân viên kho' },
-    }),
-  ]);
+  const created = {} as SeededRoles;
+  for (const maRole of Object.keys(ROLE_META) as (keyof SeededRoles)[]) {
+    const role = await prisma.role.create({
+      data: { maRole, ...ROLE_META[maRole] },
+    });
+    created[maRole] = role.id;
+  }
 
   const password = await bcrypt.hash(TEST_PASSWORD, 4);
+  const users = [
+    ['NV0001', 'admin', 'Quản trị viên', 'ADMIN', true],
+    ['NV0002', 'kho', 'Nhân viên kho', 'NHAN_VIEN_KHO', true],
+    ['NV0003', 'locked', 'Đã khóa', 'NHAN_VIEN_KHO', false],
+    ['NV0004', 'tam', 'Tạm thời', 'NHAN_VIEN_KHO', true],
+    ['NV0005', 'quanly', 'Quản lý kho', 'QUAN_LY_KHO', true],
+    ['NV0006', 'ketoan', 'Kế toán', 'KE_TOAN', true],
+  ] as const;
   await prisma.user.createMany({
-    data: [
-      {
-        maNV: 'NV0001',
-        username: 'admin',
-        hoTen: 'Quản trị viên',
-        password,
-        roleId: admin.id,
-      },
-      {
-        maNV: 'NV0002',
-        username: 'kho',
-        hoTen: 'Nhân viên kho',
-        password,
-        roleId: nhanVien.id,
-      },
-      {
-        maNV: 'NV0003',
-        username: 'locked',
-        hoTen: 'Đã khóa',
-        password,
-        roleId: nhanVien.id,
-        trangThai: false,
-      },
-      {
-        maNV: 'NV0004',
-        username: 'tam',
-        hoTen: 'Tạm thời',
-        password,
-        roleId: nhanVien.id,
-      },
-    ],
+    data: users.map(([maNV, username, hoTen, maRole, trangThai]) => ({
+      maNV,
+      username,
+      hoTen,
+      password,
+      roleId: created[maRole],
+      trangThai,
+    })),
   });
+  await prisma.boDemMa.create({ data: { tienTo: 'NV', ngay: '', giaTri: 6 } });
+  return created;
 }

@@ -22,7 +22,7 @@ Cột **Trạng thái**: `có` = đã dùng trong code; `đề xuất` = sẽ th
 | `JWT_REFRESH_SECRET` | chuỗi ngẫu nhiên ≥ 32 ký tự, **khác** khóa access | **có** | Khóa ký refresh token | có |
 | `JWT_ACCESS_TTL` | `15m` | **có** | Thời hạn access token | có |
 | `JWT_REFRESH_TTL` | `7d` | **có** | Thời hạn refresh token | có |
-| `LOGIN_RATE_LIMIT` | `5` | không (mặc định 5) | Số lần `POST /auth/login` tối đa mỗi phút mỗi IP | đề xuất (M1) |
+| `LOGIN_RATE_LIMIT` | `5` | không (mặc định 5) | Số lần `POST /auth/login` tối đa mỗi phút mỗi IP (e2e đặt 1000) | có (M1) |
 
 Sinh secret: `openssl rand -base64 48`. Đổi secret ⇒ mọi token hiện có mất hiệu lực.
 

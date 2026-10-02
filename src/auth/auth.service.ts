@@ -7,6 +7,7 @@ import { AppException } from '../common/errors/app.exception.js';
 import { authConfig } from '../config/auth.config.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService, type UserWithRole } from '../users/users.service.js';
+import { RefreshTokenService } from './refresh-token/refresh-token.service.js';
 import type { LoginDto } from './dto/login.dto.js';
 import type { RefreshTokenDto } from './dto/refresh-token.dto.js';
 import type { AuthenticatedUser } from './types/authenticated-user.type.js';
@@ -41,6 +42,7 @@ export class AuthService {
     private readonly jwt: JwtService,
     @Inject(authConfig.KEY)
     private readonly config: ConfigType<typeof authConfig>,
+    private readonly refreshTokens: RefreshTokenService,
   ) {}
 
   async login(dto: LoginDto): Promise<LoginResult> {
@@ -77,7 +79,7 @@ export class AuthService {
     }
     if (stored.revokedAt) {
       // A rotated token is being reused: treat it as leaked and revoke every session.
-      await this.revokeAllForUser(stored.userId);
+      await this.refreshTokens.revokeAllForUser(stored.userId);
       throw new AppException('AUTH_SESSION_INVALID');
     }
     if (stored.expiresAt <= new Date()) {
@@ -119,13 +121,6 @@ export class AuthService {
   async logout(dto: RefreshTokenDto): Promise<void> {
     await this.prisma.refreshToken.updateMany({
       where: { tokenHash: hashToken(dto.refreshToken), revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
-  }
-
-  private async revokeAllForUser(userId: string): Promise<void> {
-    await this.prisma.refreshToken.updateMany({
-      where: { userId, revokedAt: null },
       data: { revokedAt: new Date() },
     });
   }

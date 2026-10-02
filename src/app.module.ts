@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { ConfigModule, type ConfigType } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { randomUUID } from 'node:crypto';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
@@ -17,6 +18,7 @@ import { RequestContextMiddleware } from './common/request-context/request-conte
 import { appConfig } from './config/app.config.js';
 import { HealthModule } from './health/health.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { RolesModule } from './roles/roles.module.js';
 import { UsersModule } from './users/users.module.js';
 
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
@@ -82,11 +84,21 @@ const REQUEST_ID_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
         },
       }),
     }),
+    // Only POST /auth/login opts in (ThrottlerGuard on that route); other routes are not limited.
+    ThrottlerModule.forRootAsync({
+      inject: [appConfig.KEY],
+      useFactory: (config: ConfigType<typeof appConfig>) => ({
+        throttlers: [
+          { name: 'login', ttl: 60_000, limit: config.loginRateLimit },
+        ],
+      }),
+    }),
     ClockModule,
     ErrorsModule,
     CodeGeneratorModule,
     PrismaModule,
     AuditModule,
+    RolesModule,
     UsersModule,
     AuthModule,
     HealthModule,

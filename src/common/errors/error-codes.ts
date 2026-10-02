@@ -25,6 +25,40 @@ const DEFINITIONS = {
   },
   AUTH_FORBIDDEN: { status: 403, message: 'Bạn không có quyền truy cập' },
 
+  ROLE_NOT_FOUND: { status: 404, message: 'Không tìm thấy vai trò' },
+  ROLE_SYSTEM_PROTECTED: {
+    status: 409,
+    message: 'Không thể vô hiệu hóa vai trò Quản trị viên',
+  },
+  ROLE_HAS_ACTIVE_USERS: {
+    status: 409,
+    message:
+      'Vai trò vẫn còn người dùng đang hoạt động, hãy chuyển họ sang vai trò khác trước',
+  },
+
+  USER_NOT_FOUND: { status: 404, message: 'Không tìm thấy người dùng' },
+  USER_USERNAME_TAKEN: {
+    status: 409,
+    message: 'Tên đăng nhập đã được sử dụng',
+  },
+  USER_EMAIL_TAKEN: { status: 409, message: 'Email đã được sử dụng' },
+  USER_ROLE_INVALID: {
+    status: 422,
+    message: 'Vai trò không hợp lệ hoặc đã bị vô hiệu hóa',
+  },
+  USER_CANNOT_MODIFY_SELF: {
+    status: 409,
+    message: 'Bạn không thể tự thay đổi vai trò hoặc khóa chính mình',
+  },
+  USER_LAST_ADMIN: {
+    status: 409,
+    message: 'Phải còn ít nhất một quản trị viên đang hoạt động',
+  },
+  USER_OLD_PASSWORD_WRONG: {
+    status: 422,
+    message: 'Mật khẩu hiện tại không đúng',
+  },
+
   COMMON_NOT_FOUND: {
     status: 404,
     message: 'Không tìm thấy tài nguyên yêu cầu',

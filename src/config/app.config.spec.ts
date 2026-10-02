@@ -12,6 +12,7 @@ describe('loadAppConfig', () => {
       corsOrigins: [],
       trustProxy: false,
       logLevel: 'debug',
+      loginRateLimit: 5,
       swaggerEnabled: true,
       swaggerUser: null,
       swaggerPassword: null,
@@ -59,6 +60,8 @@ describe('loadAppConfig', () => {
     [{ PORT: '0' }, /PORT/],
     [{ PORT: 'abc' }, /PORT/],
     [{ LOG_LEVEL: 'loud' }, /LOG_LEVEL/],
+    [{ LOGIN_RATE_LIMIT: '0' }, /LOGIN_RATE_LIMIT/],
+    [{ LOGIN_RATE_LIMIT: 'x' }, /LOGIN_RATE_LIMIT/],
     [{ SWAGGER_ENABLED: 'yes' }, /boolean/],
   ])('từ chối cấu hình sai %j', (env, pattern) => {
     expect(() => loadAppConfig(base(env))).toThrow(pattern);
