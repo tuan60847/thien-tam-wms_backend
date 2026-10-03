@@ -28,6 +28,8 @@ Tài liệu này (1) ghi bất biến/ràng buộc nghiệp vụ theo từng b�
 | P-20 | Đổi tên `PhieuNhapHang.createAt` → `createdAt` (cột `create_at` → `created_at`) | Nhất quán | M0 | phiếu nhập |
 | P-21 | `PhuongTienVanChuyen.isXeLanh Boolean @default(false)` | Phân biệt xe lạnh cho hàng cần bảo quản lạnh | M3 | phương tiện, phiếu nhập/xuất |
 
+**Đã áp dụng ở M2** (migration `m2_hang_hoa_catalog`): P-17 (`HangHoa.maSP`), `HangHoa.donViTinhGia` (phần của P-07), `createdById`/`updatedById` cho `HangHoa` (phần của P-02); nới độ dài `tenSP`/`quyCach` (200) và `ghiChu` (500).
+
 **Đã áp dụng ở M0** (migration `m0_foundation_schema`): P-01 (6 enum cho cột đã có), P-02 phần `createdAt`/`updatedAt` (chưa có `createdById`/`updatedById`), P-03, P-04, P-05 (index trên cột đã có), P-06, P-14, P-15, P-20. Còn lại làm ở milestone cần dùng.
 
 Nguyên tắc triển khai: gom P-01…P-06, P-14, P-15, P-20 vào **một** migration ở M0 (an toàn vì chưa có dữ liệu thật); các đề xuất còn lại thêm đúng milestone cần dùng.

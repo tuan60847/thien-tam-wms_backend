@@ -16,9 +16,12 @@ import { CodeGeneratorModule } from './common/code-generator/code-generator.modu
 import { ErrorsModule } from './common/errors/errors.module.js';
 import { RequestContextMiddleware } from './common/request-context/request-context.js';
 import { appConfig } from './config/app.config.js';
+import { HangHoaModule } from './hang-hoa/hang-hoa.module.js';
 import { HealthModule } from './health/health.module.js';
+import { LoaiHangModule } from './loai-hang/loai-hang.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { RolesModule } from './roles/roles.module.js';
+import { TyLeQuyDoiModule } from './ty-le-quy-doi/ty-le-quy-doi.module.js';
 import { UsersModule } from './users/users.module.js';
 
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
@@ -100,6 +103,9 @@ const REQUEST_ID_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
     AuditModule,
     RolesModule,
     UsersModule,
+    LoaiHangModule,
+    HangHoaModule,
+    TyLeQuyDoiModule,
     AuthModule,
     HealthModule,
   ],

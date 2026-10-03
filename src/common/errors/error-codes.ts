@@ -59,6 +59,61 @@ const DEFINITIONS = {
     message: 'Mật khẩu hiện tại không đúng',
   },
 
+  LOAI_HANG_NOT_FOUND: { status: 404, message: 'Không tìm thấy loại hàng' },
+  LOAI_HANG_NAME_TAKEN: { status: 409, message: 'Tên loại hàng đã tồn tại' },
+  LOAI_HANG_IN_USE: {
+    status: 409,
+    message: 'Không thể xóa loại hàng đang có hàng hóa',
+  },
+
+  HANG_HOA_NOT_FOUND: { status: 404, message: 'Không tìm thấy hàng hóa' },
+  HANG_HOA_CODE_TAKEN: { status: 409, message: 'Mã hàng hóa đã tồn tại' },
+  HANG_HOA_PRICE_INVALID: {
+    status: 422,
+    message: 'Giá tối thiểu không được lớn hơn giá hiển thị',
+  },
+  HANG_HOA_CONTROL_TYPE_INVALID: {
+    status: 422,
+    message:
+      'Thuốc kê đơn/kiểm soát đặc biệt cần khai báo loại kiểm soát và số đăng ký',
+  },
+  HANG_HOA_PRICE_UNIT_INVALID: {
+    status: 422,
+    message: 'Đơn vị tính giá không thuộc các đơn vị của hàng hóa',
+  },
+  HANG_HOA_INACTIVE: { status: 422, message: 'Hàng hóa đã ngừng kinh doanh' },
+  HANG_HOA_IN_USE: {
+    status: 409,
+    message:
+      'Không thể xóa hàng hóa đã phát sinh lô, hãy chuyển sang ngừng kinh doanh',
+  },
+
+  TY_LE_QUY_DOI_NOT_FOUND: {
+    status: 404,
+    message: 'Không tìm thấy đơn vị tính',
+  },
+  TY_LE_QUY_DOI_UNIT_TAKEN: {
+    status: 409,
+    message: 'Đơn vị tính đã tồn tại cho hàng hóa này',
+  },
+  TY_LE_QUY_DOI_BASE_REQUIRED: {
+    status: 422,
+    message:
+      'Mỗi hàng hóa chỉ có một đơn vị cơ bản, các đơn vị khác phải có hệ số quy đổi lớn hơn 1',
+  },
+  TY_LE_QUY_DOI_BASE_IMMUTABLE: {
+    status: 409,
+    message: 'Không thể xóa hoặc thay đổi hệ số của đơn vị cơ bản',
+  },
+  TY_LE_QUY_DOI_LOCKED: {
+    status: 409,
+    message: 'Hàng hóa đã phát sinh lô nên không thể đổi tên hoặc hệ số đơn vị',
+  },
+  TY_LE_QUY_DOI_IN_USE: {
+    status: 409,
+    message: 'Đơn vị tính đang được sử dụng nên không thể xóa',
+  },
+
   COMMON_NOT_FOUND: {
     status: 404,
     message: 'Không tìm thấy tài nguyên yêu cầu',

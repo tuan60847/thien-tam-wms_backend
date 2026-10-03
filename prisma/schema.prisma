@@ -89,6 +89,8 @@ model User {
   phieuXuatHangTao PhieuXuatHang[] @relation("PhieuXuatHangCreatedBy")
   phieuNhapHangTao PhieuNhapHang[] @relation("PhieuNhapHangCreatedBy")
 
+  hangHoaTao    HangHoa[]       @relation("HangHoaCreatedBy")
+  hangHoaSua    HangHoa[]       @relation("HangHoaUpdatedBy")
   refreshTokens RefreshToken[]
   nhatKy        NhatKyHeThong[]
 
@@ -117,7 +119,7 @@ model RefreshToken {
 model LoaiHang {
   id          String   @id @default(uuid())
   tenLoaiHang String   @unique @map("ten_loai_hang")
-  ghiChu      String?  @map("ghi_chu")
+  ghiChu      String?  @map("ghi_chu") @db.VarChar(500)
   trangThai   Boolean  @default(true) @map("trang_thai")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
@@ -129,8 +131,11 @@ model LoaiHang {
 
 model HangHoa {
   id           String        @id @default(uuid())
-  tenSP        String        @map("ten_sp")
-  quyCach      String?       @map("quy_cach")
+  maSP         String        @unique @map("ma_sp") @db.VarChar(20)
+  tenSP        String        @map("ten_sp") @db.VarChar(200)
+  quyCach      String?       @map("quy_cach") @db.VarChar(200)
+  // Đơn vị mà giaNhap / giaHienThi / giaToiThieu tính theo (phải là một donViTinh của hàng)
+  donViTinhGia String        @map("don_vi_tinh_gia") @db.VarChar(30)
   giaNhap      Decimal       @default(0) @map("gia_nhap") @db.Decimal(15, 2)
   giaHienThi   Decimal       @default(0) @map("gia_hien_thi") @db.Decimal(15, 2)
   giaToiThieu  Decimal       @default(0) @map("gia_toi_thieu") @db.Decimal(15, 2)
@@ -138,13 +143,18 @@ model HangHoa {
   isCanGiuLanh Boolean       @default(false) @map("is_can_giu_lanh") // cần bảo quản lạnh
   loaiKiemSoat LoaiKiemSoat? @map("loai_kiem_soat") // thường / kê đơn / kiểm soát đặc biệt
   soDangKy     String?       @map("so_dang_ky") // số đăng ký lưu hành thuốc
-  ghiChu       String?       @map("ghi_chu")
+  ghiChu       String?       @map("ghi_chu") @db.VarChar(500)
   trangThai    Boolean       @default(true) @map("trang_thai")
   createdAt    DateTime      @default(now()) @map("created_at")
   updatedAt    DateTime      @updatedAt @map("updated_at")
 
   loaiHangId String   @map("loai_hang_id")
   loaiHang   LoaiHang @relation(fields: [loaiHangId], references: [id])
+
+  createdById String? @map("created_by_id")
+  createdBy   User?   @relation("HangHoaCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById String? @map("updated_by_id")
+  updatedBy   User?   @relation("HangHoaUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   tyLeQuyDois TyLeQuyDoi[]
   soLos       SoLo[]

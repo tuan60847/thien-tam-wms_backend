@@ -176,6 +176,11 @@ src/hang-hoa/
 | create / update | ✓ | ✓ | ✗ | ✗ |
 | delete | ✓ | ✗ | ✗ | ✗ |
 
+## 13b. Ghi chú triển khai (M2)
+- Hàng hóa là aggregate root: `HangHoaService.create` tạo luôn các `TyLeQuyDoi` bằng một lệnh ghi lồng nhau (một hàng không bao giờ tồn tại thiếu đơn vị cơ bản). `TyLeQuyDoiModule` phụ thuộc `HangHoaModule` (không ngược lại) để tránh vòng phụ thuộc; đổi tên đơn vị tính giá gọi `HangHoaService.setPriceUnit`.
+- Sắp xếp danh sách chỉ cho `tenSP`, `maSP`, `giaHienThi`, `createdAt` — không cho sắp theo `giaNhap` để không suy ra giá vốn.
+- Mã `maSP` sinh bằng `CodeGeneratorService` trong cùng transaction; test đồng thời 10 yêu cầu tạo không trùng.
+
 ## 14. Open questions
 - **Q-HH-1**: Ba mức giá hiện tại (`giaNhap`, `giaHienThi`, `giaToiThieu`) tính theo đơn vị nào — hộp, hay đơn vị cơ bản? Đề xuất `donViTinhGia` (P-07). Xem thêm [schema-notes.md](../01-data/schema-notes.md) §6.
 - **Q-HH-2**: `tenSP` có cần duy nhất (theo `tenSP + quyCach`)? Đề xuất không bắt buộc duy nhất, chỉ cảnh báo khi trùng cả `tenSP` và `quyCach`.

@@ -82,7 +82,7 @@ Phân biệt 409 / 422: 409 = "việc bạn làm đụng vào trạng thái hệ
 
 Các message `AUTH_*` khớp với message Auth đã có ("Sai tài khoản hoặc mật khẩu", "Tài khoản đã bị khóa", "Phiên đăng nhập không hợp lệ", "Bạn không có quyền truy cập"). "Vui lòng đăng nhập để tiếp tục" thay thế thông báo mặc định của Nest cho thiếu token.
 
-> **Đã triển khai ở M0–M1:** `src/common/errors/` (`ERROR` registry, `AppException`, `HttpExceptionFilter`, `validationExceptionFactory`). Registry hiện chứa các mã dùng chung ở bảng này; mã của từng module được thêm vào `error-codes.ts` khi module đó được làm (đã có: `ROLE_*`, `USER_*` từ M1). Lưu ý: request nằm ngoài prefix `/api/v1` do Express trả 404 mặc định, không qua bộ lọc này.
+> **Đã triển khai ở M0–M1:** `src/common/errors/` (`ERROR` registry, `AppException`, `HttpExceptionFilter`, `validationExceptionFactory`). Registry hiện chứa các mã dùng chung ở bảng này; mã của từng module được thêm vào `error-codes.ts` khi module đó được làm (đã có: `ROLE_*`, `USER_*` từ M1; `LOAI_HANG_*`, `HANG_HOA_*`, `TY_LE_QUY_DOI_*` từ M2). Lưu ý: request nằm ngoài prefix `/api/v1` do Express trả 404 mặc định, không qua bộ lọc này.
 
 ## 4. Cơ chế kỹ thuật
 

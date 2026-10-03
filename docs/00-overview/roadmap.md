@@ -43,9 +43,11 @@ Phụ thuộc: không. Là điều kiện cho mọi milestone sau.
 
 **Kết quả thực tế M1:** `RolesModule` (3 endpoint), `UsersModule` (7 endpoint), `RefreshTokenModule` tách khỏi Auth, giới hạn đăng nhập theo IP (`LOGIN_RATE_LIMIT`, mặc định 5/phút), validator `IsStrongPassword`/`IsUsername`, transformer `Trim`/`LowerTrim`/`ToBoolean`. Phát hiện và sửa khi viết e2e: ràng buộc "luôn còn một admin" không an toàn khi hai admin hạ quyền nhau đồng thời — xem `users.md` BR-05.
 
-## M2 — Danh mục hàng hóa (M)
+## M2 — Danh mục hàng hóa (M) — ✅ đã triển khai (2026-10-02)
 
 `loai-hang` → `hang-hoa` → `ty-le-quy-doi`. Lý do: là danh mục gốc của mọi chứng từ; không phụ thuộc kho/đối tác. `hang-hoa` và `ty-le-quy-doi` ràng buộc lẫn nhau (phải có đúng một đơn vị cơ bản), nên làm chung một milestone.
+
+**Kết quả thực tế M2:** `LoaiHangModule` (5 endpoint), `HangHoaModule` (5), `TyLeQuyDoiModule` (5); migration `m2_hang_hoa_catalog` (P-17 `maSP`, P-07 một phần: `HangHoa.donViTinhGia`, P-02 `createdById`/`updatedById` cho `HangHoa`). **Câu hỏi #30 (Q-HH-1) chưa được trả lời nên áp dụng phương án đề xuất** — giá tính theo `donViTinhGia`; nếu bạn chọn phương án khác (giá theo đơn vị cơ bản) thì sửa ở `hang-hoa.rules.ts`/`mapper` và bỏ cột. Chưa làm: kiểm tra "đơn vị đang nằm trong phiếu nháp" khi xóa đơn vị (cần cột `donViTinh` trên dòng phiếu, thêm ở M5).
 
 ## M3 — Kho & đối tác (L)
 

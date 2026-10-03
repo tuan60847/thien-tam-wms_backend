@@ -33,7 +33,7 @@
 
 ## 6. DTOs
 ### Request
-- `CreateTyLeQuyDoiDto { donViTinh: string; soLuongQuyDoi: number }` — `donViTinh` `@IsNotEmpty @MaxLength(30)` trim; `soLuongQuyDoi` `@IsInt @Min(2) @Max(1000000)` (đơn vị cơ bản chỉ được tạo cùng hàng).
+- `CreateTyLeQuyDoiDto { donViTinh: string; soLuongQuyDoi: number }` — `donViTinh` `@IsNotEmpty @MaxLength(30)` trim; `soLuongQuyDoi` `@IsInt @Min(1) @Max(1000000)`. DTO cho phép `1` để service trả lỗi rõ hơn `TY_LE_QUY_DOI_BASE_REQUIRED` (422) thay vì 400; đơn vị cơ bản chỉ được tạo cùng hàng hóa.
 - `UpdateTyLeQuyDoiDto = PartialType(CreateTyLeQuyDoiDto)`.
 ### Response
 - `TyLeQuyDoiResponseDto { id; hangHoaId; donViTinh; soLuongQuyDoi; laDonViCoBan: boolean; laDonViTinhGia: boolean }`.
@@ -45,7 +45,7 @@
 - BR-02: Tên đơn vị duy nhất trong một hàng (không phân biệt hoa/thường, sau trim).
 - BR-03: Đơn vị cơ bản không xóa, không đổi hệ số (`TY_LE_QUY_DOI_BASE_IMMUTABLE`); đổi tên đơn vị cơ bản chỉ khi hàng chưa bị khóa.
 - BR-04: **Khóa theo lô:** khi hàng đã có `SoLo`, không đổi `donViTinh`/`soLuongQuyDoi` của bất kỳ đơn vị nào (`TY_LE_QUY_DOI_LOCKED`). Lý do: dòng phiếu lưu snapshot nhưng bản nháp tham chiếu tên đơn vị hiện tại; đổi sẽ làm bản nháp mơ hồ.
-- BR-05: Xóa đơn vị khác cơ bản: không được xóa nếu là `donViTinhGia` của hàng hoặc đang được dòng chi tiết phiếu **nháp** tham chiếu (`TY_LE_QUY_DOI_IN_USE`). Đơn vị chỉ xuất hiện trong phiếu đã xác nhận (snapshot) thì xóa được.
+- BR-05: Xóa đơn vị khác cơ bản: không được xóa nếu là `donViTinhGia` của hàng hoặc đang được dòng chi tiết phiếu **nháp** tham chiếu (`TY_LE_QUY_DOI_IN_USE`). Đơn vị chỉ xuất hiện trong phiếu đã xác nhận (snapshot) thì xóa được. *(M2 mới cài vế `donViTinhGia`; vế phiếu nháp thêm ở M5 cùng cột `donViTinh` trên dòng phiếu.)*
 - BR-06: Quy đổi: `soLuongCoBan = soLuong × soLuongQuyDoi` (số nguyên); tràn `Int` (> 2.147.483.647) → `VALIDATION_FAILED`.
 - BR-07: Đổi hệ số trước khi hàng bị khóa **không** ảnh hưởng chứng từ vì chưa có chứng từ; sau khi khóa không thể đổi.
 - BR-08: Ghi `NhatKyHeThong` khi sửa/xóa đơn vị (`ty_le_quy_doi.update/delete`).
