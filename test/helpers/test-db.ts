@@ -37,7 +37,15 @@ export async function resetAndSeed(
 ): Promise<SeededRoles> {
   assertTestDatabase();
   await prisma.nhatKyHeThong.deleteMany();
+  await prisma.phieuXuatHang.deleteMany();
+  await prisma.phieuNhapHang.deleteMany();
+  await prisma.tonKho.deleteMany();
   await prisma.soLo.deleteMany();
+  await prisma.viTri.deleteMany();
+  await prisma.kho.deleteMany();
+  await prisma.khachHang.deleteMany();
+  await prisma.nhaCungCap.deleteMany();
+  await prisma.phuongTienVanChuyen.deleteMany();
   await prisma.tyLeQuyDoi.deleteMany();
   await prisma.hangHoa.deleteMany();
   await prisma.loaiHang.deleteMany();

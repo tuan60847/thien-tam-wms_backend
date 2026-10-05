@@ -17,8 +17,12 @@ import { ErrorsModule } from './common/errors/errors.module.js';
 import { RequestContextMiddleware } from './common/request-context/request-context.js';
 import { appConfig } from './config/app.config.js';
 import { HangHoaModule } from './hang-hoa/hang-hoa.module.js';
+import { KhachHangModule } from './khach-hang/khach-hang.module.js';
+import { KhoViTriModule } from './kho-vi-tri/kho-vi-tri.module.js';
 import { HealthModule } from './health/health.module.js';
 import { LoaiHangModule } from './loai-hang/loai-hang.module.js';
+import { NhaCungCapModule } from './nha-cung-cap/nha-cung-cap.module.js';
+import { PhuongTienVanChuyenModule } from './phuong-tien-van-chuyen/phuong-tien-van-chuyen.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { RolesModule } from './roles/roles.module.js';
 import { TyLeQuyDoiModule } from './ty-le-quy-doi/ty-le-quy-doi.module.js';
@@ -106,6 +110,10 @@ const REQUEST_ID_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
     LoaiHangModule,
     HangHoaModule,
     TyLeQuyDoiModule,
+    KhoViTriModule,
+    KhachHangModule,
+    NhaCungCapModule,
+    PhuongTienVanChuyenModule,
     AuthModule,
     HealthModule,
   ],

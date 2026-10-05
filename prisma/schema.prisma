@@ -89,10 +89,15 @@ model User {
   phieuXuatHangTao PhieuXuatHang[] @relation("PhieuXuatHangCreatedBy")
   phieuNhapHangTao PhieuNhapHang[] @relation("PhieuNhapHangCreatedBy")
 
-  hangHoaTao    HangHoa[]       @relation("HangHoaCreatedBy")
-  hangHoaSua    HangHoa[]       @relation("HangHoaUpdatedBy")
-  refreshTokens RefreshToken[]
-  nhatKy        NhatKyHeThong[]
+  hangHoaTao        HangHoa[]       @relation("HangHoaCreatedBy")
+  hangHoaSua        HangHoa[]       @relation("HangHoaUpdatedBy")
+  khachHangTao      KhachHang[]     @relation("KhachHangCreatedBy")
+  khachHangSua      KhachHang[]     @relation("KhachHangUpdatedBy")
+  nhaCungCapTao     NhaCungCap[]    @relation("NhaCungCapCreatedBy")
+  nhaCungCapSua     NhaCungCap[]    @relation("NhaCungCapUpdatedBy")
+  nhaCungCapXacMinh NhaCungCap[]    @relation("NhaCungCapXacMinhBy")
+  refreshTokens     RefreshToken[]
+  nhatKy            NhatKyHeThong[]
 
   @@map("user")
 }
@@ -204,8 +209,8 @@ model SoLo {
 
 model Kho {
   id        String   @id @default(uuid())
-  tenKho    String   @unique @map("ten_kho")
-  diaChi    String?  @map("dia_chi")
+  tenKho    String   @unique @map("ten_kho") @db.VarChar(100)
+  diaChi    String?  @map("dia_chi") @db.VarChar(255)
   trangThai Boolean  @default(true) @map("trang_thai")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -217,9 +222,9 @@ model Kho {
 
 model ViTri {
   id        String   @id @default(uuid())
-  tenViTri  String   @map("ten_vi_tri")
+  tenViTri  String   @map("ten_vi_tri") @db.VarChar(50)
   isCapDong Boolean  @default(false) @map("is_cap_dong") // vị trí bảo quản lạnh
-  ghiChu    String?  @map("ghi_chu")
+  ghiChu    String?  @map("ghi_chu") @db.VarChar(255)
   trangThai Boolean  @default(true) @map("trang_thai")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -256,21 +261,26 @@ model TonKho {
 model KhachHang {
   id           String             @id @default(uuid())
   maKH         String             @unique @map("ma_kh")
-  tenKH        String             @map("ten_kh")
-  diaChi       String?            @map("dia_chi")
-  maSoThue     String?            @unique @map("ma_so_thue")
-  email        String?
-  SDT          String?
-  nguoiDaiDien String?            @map("nguoi_dai_dien")
-  SDTNDD       String?            @map("sdt_ndd") // SĐT người đại diện
+  tenKH        String             @map("ten_kh") @db.VarChar(200)
+  diaChi       String?            @map("dia_chi") @db.VarChar(255)
+  maSoThue     String?            @unique @map("ma_so_thue") @db.VarChar(14)
+  email        String?            @db.VarChar(150)
+  SDT          String?            @db.VarChar(15)
+  nguoiDaiDien String?            @map("nguoi_dai_dien") @db.VarChar(100)
+  SDTNDD       String?            @map("sdt_ndd") @db.VarChar(15) // SĐT người đại diện
   trangThai    TrangThaiKhachHang @default(hoat_dong) @map("trang_thai")
   createdAt    DateTime           @default(now()) @map("created_at")
   updatedAt    DateTime           @updatedAt @map("updated_at")
 
   // Đề xuất bổ sung để tuân thủ (chưa có trong bản vẽ gốc, nên thêm khi cần)
-  soGiayPhepKinhDoanh String?   @map("so_giay_phep_kinh_doanh")
+  soGiayPhepKinhDoanh String?   @map("so_giay_phep_kinh_doanh") @db.VarChar(50)
   ngayCapGPKD         DateTime? @map("ngay_cap_gpkd") @db.Date
   ngayHetHanGPKD      DateTime? @map("ngay_het_han_gpkd") @db.Date
+
+  createdById String? @map("created_by_id")
+  createdBy   User?   @relation("KhachHangCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById String? @map("updated_by_id")
+  updatedBy   User?   @relation("KhachHangUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   phieuXuatHangs PhieuXuatHang[]
 
@@ -279,24 +289,37 @@ model KhachHang {
 
 model NhaCungCap {
   id               String           @id @default(uuid())
-  tenNCC           String           @map("ten_ncc")
-  SDT              String?
-  diaChi           String?          @map("dia_chi")
-  tenNguoiPhuTrach String?          @map("ten_nguoi_phu_trach")
-  sdtNguoiPT       String?          @map("sdt_nguoi_pt")
+  maNCC            String           @unique @map("ma_ncc") @db.VarChar(20)
+  tenNCC           String           @map("ten_ncc") @db.VarChar(200)
+  SDT              String?          @db.VarChar(15)
+  diaChi           String?          @map("dia_chi") @db.VarChar(255)
+  tenNguoiPhuTrach String?          @map("ten_nguoi_phu_trach") @db.VarChar(100)
+  sdtNguoiPT       String?          @map("sdt_nguoi_pt") @db.VarChar(15)
   trangThaiXacMinh TrangThaiXacMinh @default(chua_xac_minh) @map("trang_thai_xac_minh")
-  ghiChu           String?          @map("ghi_chu")
+  ghiChu           String?          @map("ghi_chu") @db.VarChar(500)
   trangThai        Boolean          @default(true) @map("trang_thai")
   createdAt        DateTime         @default(now()) @map("created_at")
   updatedAt        DateTime         @updatedAt @map("updated_at")
 
-  soGiayPhepKinhDoanh String?   @map("so_giay_phep_kinh_doanh")
+  soGiayPhepKinhDoanh String?   @map("so_giay_phep_kinh_doanh") @db.VarChar(50)
   ngayCapGPKD         DateTime? @map("ngay_cap_gpkd") @db.Date
-  noiCapGPKD          String?   @map("noi_cap_gpkd")
+  noiCapGPKD          String?   @map("noi_cap_gpkd") @db.VarChar(255)
+  ngayHetHanGPKD      DateTime? @map("ngay_het_han_gpkd") @db.Date
 
-  soGCNDuDieuKienKinhDoanhDuoc String?   @map("so_gcn_du_dieu_kien_kinh_doanh_duoc")
+  soGCNDuDieuKienKinhDoanhDuoc String?   @map("so_gcn_du_dieu_kien_kinh_doanh_duoc") @db.VarChar(50)
   ngayCapGCNDuoc               DateTime? @map("ngay_cap_gcn_duoc") @db.Date
-  noiCapGCNDuoc                String?   @map("noi_cap_gcn_duoc")
+  noiCapGCNDuoc                String?   @map("noi_cap_gcn_duoc") @db.VarChar(255)
+  ngayHetHanGCNDuoc            DateTime? @map("ngay_het_han_gcn_duoc") @db.Date
+
+  // Người và thời điểm xác minh / từ chối gần nhất
+  xacMinhAt   DateTime? @map("xac_minh_at")
+  xacMinhById String?   @map("xac_minh_by_id")
+  xacMinhBoi  User?     @relation("NhaCungCapXacMinhBy", fields: [xacMinhById], references: [id], onDelete: SetNull)
+
+  createdById String? @map("created_by_id")
+  createdBy   User?   @relation("NhaCungCapCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById String? @map("updated_by_id")
+  updatedBy   User?   @relation("NhaCungCapUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   phieuNhapHangs PhieuNhapHang[]
 
@@ -309,8 +332,9 @@ model NhaCungCap {
 
 model PhuongTienVanChuyen {
   id             String   @id @default(uuid())
-  bienSo         String   @unique @map("bien_so")
-  loaiPhuongTien String?  @map("loai_phuong_tien")
+  bienSo         String   @unique @map("bien_so") @db.VarChar(15)
+  loaiPhuongTien String?  @map("loai_phuong_tien") @db.VarChar(50)
+  isXeLanh       Boolean  @default(false) @map("is_xe_lanh") // xe có thể chở hàng cần bảo quản lạnh
   trangThai      Boolean  @default(true) @map("trang_thai")
   createdAt      DateTime @default(now()) @map("created_at")
   updatedAt      DateTime @updatedAt @map("updated_at")
