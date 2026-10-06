@@ -38,6 +38,8 @@ export async function resetAndSeed(
   assertTestDatabase();
   await prisma.nhatKyHeThong.deleteMany();
   await prisma.phieuXuatHang.deleteMany();
+  await prisma.phieuThanhToan.deleteMany();
+  await prisma.chiTietPhieuNhapHang.deleteMany();
   await prisma.phieuNhapHang.deleteMany();
   await prisma.bienDongTonKho.deleteMany();
   await prisma.tonKho.deleteMany();

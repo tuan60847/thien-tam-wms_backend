@@ -52,6 +52,12 @@ enum LoaiKiemSoat {
   kiem_soat_dac_biet
 }
 
+// Phương thức thanh toán cho nhà cung cấp
+enum PhuongThucThanhToan {
+  tien_mat
+  chuyen_khoan
+}
+
 // Loại biến động của sổ cái tồn kho (BienDongTonKho)
 enum LoaiBienDong {
   nhap_kho
@@ -97,8 +103,13 @@ model User {
 
   // Các phiếu do user này tạo — chỉ dùng để tính doanh số / thống kê,
   // không phải quan hệ nghiệp vụ bắt buộc.
-  phieuXuatHangTao PhieuXuatHang[] @relation("PhieuXuatHangCreatedBy")
-  phieuNhapHangTao PhieuNhapHang[] @relation("PhieuNhapHangCreatedBy")
+  phieuXuatHangTao  PhieuXuatHang[]  @relation("PhieuXuatHangCreatedBy")
+  phieuNhapHangTao  PhieuNhapHang[]  @relation("PhieuNhapHangCreatedBy")
+  phieuNhapHangSua  PhieuNhapHang[]  @relation("PhieuNhapHangUpdatedBy")
+  phieuNhapXacNhan  PhieuNhapHang[]  @relation("PhieuNhapHangConfirmedBy")
+  phieuNhapHuy      PhieuNhapHang[]  @relation("PhieuNhapHangCancelledBy")
+  phieuThanhToanTao PhieuThanhToan[] @relation("PhieuThanhToanCreatedBy")
+  phieuThanhToanHuy PhieuThanhToan[] @relation("PhieuThanhToanVoidedBy")
 
   hangHoaTao        HangHoa[]        @relation("HangHoaCreatedBy")
   hangHoaSua        HangHoa[]        @relation("HangHoaUpdatedBy")
@@ -252,8 +263,9 @@ model ViTri {
   khoId String @map("kho_id")
   kho   Kho    @relation(fields: [khoId], references: [id])
 
-  tonKhos   TonKho[]
-  bienDongs BienDongTonKho[]
+  tonKhos               TonKho[]
+  bienDongs             BienDongTonKho[]
+  chiTietPhieuNhapHangs ChiTietPhieuNhapHang[]
 
   @@unique([khoId, tenViTri])
   @@map("vi_tri")
@@ -372,7 +384,11 @@ model PhuongTienVanChuyen {
 model PhieuNhapHang {
   id              String             @id @default(uuid())
   maPhieuNhapHang String             @unique @map("ma_phieu_nhap_hang")
-  ngayNhanHang    DateTime?          @map("ngay_nhan_hang")
+  ngayNhanHang    DateTime?          @map("ngay_nhan_hang") @db.Date
+  ghiChu          String?            @map("ghi_chu") @db.VarChar(500)
+  xacNhanAt       DateTime?          @map("xac_nhan_at")
+  huyAt           DateTime?          @map("huy_at")
+  lyDoHuy         String?            @map("ly_do_huy") @db.VarChar(255)
   trangThai       TrangThaiPhieuNhap @default(cho_xac_nhan) @map("trang_thai")
   createdAt       DateTime           @default(now()) @map("created_at")
   updatedAt       DateTime           @updatedAt @map("updated_at")
@@ -387,6 +403,15 @@ model PhieuNhapHang {
   createdById String? @map("created_by_id")
   createdBy   User?   @relation("PhieuNhapHangCreatedBy", fields: [createdById], references: [id])
 
+  updatedById String? @map("updated_by_id")
+  updatedBy   User?   @relation("PhieuNhapHangUpdatedBy", fields: [updatedById], references: [id])
+
+  xacNhanById String? @map("xac_nhan_by_id")
+  xacNhanBoi  User?   @relation("PhieuNhapHangConfirmedBy", fields: [xacNhanById], references: [id])
+
+  huyById String? @map("huy_by_id")
+  huyBoi  User?   @relation("PhieuNhapHangCancelledBy", fields: [huyById], references: [id])
+
   chiTietPhieuNhapHangs ChiTietPhieuNhapHang[]
   phieuThanhToans       PhieuThanhToan[]
 
@@ -397,8 +422,11 @@ model PhieuNhapHang {
 model ChiTietPhieuNhapHang {
   id                     String   @id @default(uuid())
   maChiTietPhieuNhapHang String   @unique @map("ma_chi_tiet_phieu_nhap_hang")
-  soLuong                Int      @map("so_luong")
-  donGia                 Decimal  @map("don_gia") @db.Decimal(15, 2)
+  soLuong                Int      @map("so_luong") // theo donViTinh của dòng
+  donViTinh              String   @map("don_vi_tinh") @db.VarChar(30)
+  heSoQuyDoi             Int      @map("he_so_quy_doi") // snapshot lúc lập phiếu
+  soLuongCoBan           Int      @map("so_luong_co_ban") // = soLuong × heSoQuyDoi
+  donGia                 Decimal  @map("don_gia") @db.Decimal(15, 2) // theo donViTinh của dòng
   createdAt              DateTime @default(now()) @map("created_at")
 
   phieuNhapHangId String        @map("phieu_nhap_hang_id")
@@ -409,6 +437,10 @@ model ChiTietPhieuNhapHang {
   soLoId String @map("so_lo_id")
   soLo   SoLo   @relation(fields: [soLoId], references: [id])
 
+  viTriId String @map("vi_tri_id")
+  viTri   ViTri  @relation(fields: [viTriId], references: [id])
+
+  @@unique([phieuNhapHangId, soLoId, viTriId])
   @@map("chi_tiet_phieu_nhap_hang")
 }
 
@@ -476,15 +508,25 @@ model PhieuThuCongNo {
 }
 
 model PhieuThanhToan {
-  id               String   @id @default(uuid())
-  maPhieuThanhToan String   @unique @map("ma_phieu_thanh_toan")
-  soTien           Decimal  @map("so_tien") @db.Decimal(15, 2)
-  ngayThanhToan    DateTime @map("ngay_thanh_toan") @db.Date
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  id               String              @id @default(uuid())
+  maPhieuThanhToan String              @unique @map("ma_phieu_thanh_toan")
+  soTien           Decimal             @map("so_tien") @db.Decimal(15, 2)
+  ngayThanhToan    DateTime            @map("ngay_thanh_toan") @db.Date
+  phuongThuc       PhuongThucThanhToan @map("phuong_thuc")
+  ghiChu           String?             @map("ghi_chu") @db.VarChar(255)
+  huyAt            DateTime?           @map("huy_at") // null = còn hiệu lực
+  lyDoHuy          String?             @map("ly_do_huy") @db.VarChar(255)
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
 
   phieuNhapHangId String        @map("phieu_nhap_hang_id")
   phieuNhapHang   PhieuNhapHang @relation(fields: [phieuNhapHangId], references: [id])
+
+  createdById String? @map("created_by_id")
+  createdBy   User?   @relation("PhieuThanhToanCreatedBy", fields: [createdById], references: [id])
+
+  huyById String? @map("huy_by_id")
+  huyBoi  User?   @relation("PhieuThanhToanVoidedBy", fields: [huyById], references: [id])
 
   @@index([ngayThanhToan])
   @@map("phieu_thanh_toan")

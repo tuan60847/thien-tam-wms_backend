@@ -37,7 +37,7 @@
 | POST | `/api/v1/phieu-nhap-hang` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Lập phiếu nhập (nháp) | `CreatePhieuNhapDto` | `PhieuNhapResponseDto` (201) |
 | PATCH | `/api/v1/phieu-nhap-hang/:id` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Sửa phiếu nháp (thay toàn bộ dòng nếu gửi `chiTiet`) | `UpdatePhieuNhapDto` | `PhieuNhapResponseDto` |
 | DELETE | `/api/v1/phieu-nhap-hang/:id` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Xóa phiếu nháp | — | 204 |
-| POST | `/api/v1/phieu-nhap-hang/:id/xac-nhan` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Xác nhận nhập kho, tăng tồn | `XacNhanNhapDto` | `PhieuNhapResponseDto` |
+| POST | `/api/v1/phieu-nhap-hang/:id/xac-nhan` | JWT | ADMIN, QUAN_LY_KHO | Xác nhận nhập kho, tăng tồn | `XacNhanNhapDto` | `PhieuNhapResponseDto` |
 | POST | `/api/v1/phieu-nhap-hang/:id/huy` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO* | Hủy phiếu | `HuyPhieuDto` | `PhieuNhapResponseDto` |
 
 \* `NHAN_VIEN_KHO` chỉ hủy phiếu **nháp**; hủy phiếu đã nhập kho chỉ `ADMIN`, `QUAN_LY_KHO` (kiểm trong service).
@@ -204,7 +204,7 @@ src/phieu-nhap-hang/
 |---|---|---|---|---|
 | list / read | ✓ | ✓ | ✓ | ✓ |
 | create / update / delete (nháp) | ✓ | ✓ | ✓ | ✗ |
-| xác nhận nhập kho | ✓ | ✓ | ✓ | ✗ |
+| xác nhận nhập kho | ✓ | ✓ | ✗ (đã triển khai: chỉ ADMIN, QUAN_LY_KHO; xem Q-NHAP-2) | ✗ |
 | hủy phiếu nháp | ✓ | ✓ | ✓ | ✗ |
 | hủy phiếu đã nhập kho | ✓ | ✓ | ✗ | ✗ |
 

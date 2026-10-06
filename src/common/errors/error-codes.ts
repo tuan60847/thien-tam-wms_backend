@@ -257,6 +257,58 @@ const DEFINITIONS = {
     message: 'Số lượng điều chỉnh trùng với tồn hiện tại',
   },
 
+  PHIEU_NHAP_NOT_FOUND: {
+    status: 404,
+    message: 'Không tìm thấy phiếu nhập hàng',
+  },
+  PHIEU_NHAP_INVALID_STATE: {
+    status: 409,
+    message: 'Phiếu nhập không ở trạng thái cho phép thực hiện thao tác này',
+  },
+  PHIEU_NHAP_EMPTY: {
+    status: 422,
+    message: 'Phiếu nhập chưa có mặt hàng nào',
+  },
+  PHIEU_NHAP_DUPLICATE_LINE: {
+    status: 422,
+    message: 'Phiếu có hai dòng trùng lô và vị trí, hãy gộp lại',
+  },
+  PHIEU_NHAP_UNIT_INVALID: {
+    status: 422,
+    message: 'Đơn vị tính không hợp lệ cho hàng hóa này',
+  },
+  PHIEU_NHAP_DATE_INVALID: {
+    status: 422,
+    message: 'Ngày nhận hàng không hợp lệ',
+  },
+  PHIEU_NHAP_CANNOT_REVERSE: {
+    status: 409,
+    message:
+      'Không thể hủy vì hàng đã được xuất, chuyển đi hoặc phiếu đã có thanh toán',
+  },
+
+  PHIEU_THANH_TOAN_NOT_FOUND: {
+    status: 404,
+    message: 'Không tìm thấy phiếu thanh toán',
+  },
+  PHIEU_THANH_TOAN_RECEIPT_INVALID_STATE: {
+    status: 409,
+    message: 'Chỉ thanh toán được cho phiếu nhập đã nhập kho',
+  },
+  PHIEU_THANH_TOAN_EXCEEDS_DEBT: {
+    status: 422,
+    message: (p) =>
+      `Số tiền thanh toán vượt quá số còn nợ (${Number(p.conNo ?? 0).toFixed(2)})`,
+  },
+  PHIEU_THANH_TOAN_DATE_INVALID: {
+    status: 422,
+    message: 'Ngày thanh toán không hợp lệ',
+  },
+  PHIEU_THANH_TOAN_ALREADY_VOID: {
+    status: 409,
+    message: 'Phiếu thanh toán đã được hủy trước đó',
+  },
+
   COMMON_NOT_FOUND: {
     status: 404,
     message: 'Không tìm thấy tài nguyên yêu cầu',

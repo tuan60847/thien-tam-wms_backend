@@ -61,7 +61,9 @@ Phụ thuộc: không. Là điều kiện cho mọi milestone sau.
 
 `so-lo` → `ton-kho`. Đây là **lõi rủi ro cao nhất** (tính đúng đắn của số liệu tồn): cập nhật có điều kiện, sổ biến động `BienDongTonKho`, chuyển vị trí, điều chỉnh, quy tắc kho lạnh, gợi ý FEFO. Cũng thêm job quét lô cận date/hết hạn ([background-jobs.md](../03-cross-cutting/background-jobs.md)). Phải xong và được test kỹ (kể cả test đồng thời) **trước** khi viết phiếu nhập/xuất.
 
-## M5 — Nhập hàng & thanh toán NCC (L)
+## M5 — Nhập hàng & thanh toán NCC (L) — ✅ đã triển khai (2026-10-06)
+
+**Kết quả thực tế M5:** `PhieuNhapHangModule` (7 endpoint: list, chi tiết, tạo, sửa, xóa nháp, `xac-nhan`, `huy`) và `PhieuThanhToanModule` (4 endpoint + `GET /nha-cung-cap/:id/cong-no`); migration `m5_phieu_nhap_thanh_toan` (đơn vị/hệ số/số lượng cơ bản/vị trí trên dòng, người xác nhận/hủy, phương thức và hủy trên thanh toán, CHECK số lượng/đơn giá/số tiền). Xác nhận gọi `TonKhoService.increase`, hủy phiếu đã nhập gọi `decrease` (`huy_nhap`). **Lệch so với kế hoạch:** (1) xác nhận nhập kho chỉ `ADMIN`/`QUAN_LY_KHO` (kế hoạch ghi cả `NHAN_VIEN_KHO`, xem Q-NHAP-2); (2) hủy phiếu nháp **không** xóa lô mồ côi (dòng của phiếu hủy vẫn tham chiếu lô), chỉ xóa phiếu nháp mới dọn lô; (3) route công nợ NCC nằm trong `PhieuThanhToanModule`, không phải `NhaCungCapController`, để tránh phụ thuộc vòng; (4) thuộc tính `conNoSauKhiTra` là số còn nợ của phiếu nhập tại thời điểm đọc.
 
 `phieu-nhap-hang` → `phieu-thanh-toan`. Làm nhập trước xuất vì tồn phải có hàng thì mới có gì để xuất, và e2e M6 dùng phiếu nhập để dựng dữ liệu. Thanh toán NCC làm ngay sau vì cần phiếu nhập đã xác nhận và có cùng khuôn với thu công nợ.
 
