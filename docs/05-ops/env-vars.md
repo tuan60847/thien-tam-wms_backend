@@ -30,9 +30,9 @@ Sinh secret: `openssl rand -base64 48`. Đổi secret ⇒ mọi token hiện có
 
 | Tên | Ví dụ | Bắt buộc | Mô tả | Trạng thái |
 |---|---|---|---|---|
-| `EXPIRY_WARNING_DAYS` | `90` | không (mặc định 90) | Ngưỡng số ngày trước hạn tính là "cận date" | đề xuất (M4) |
-| `MIN_SHELF_LIFE_DAYS_RECEIVE` | `0` | không (mặc định 0 = tắt) | Hạn dùng tối thiểu còn lại khi nhập kho | đề xuất (M4) |
-| `MIN_SHELF_LIFE_DAYS_ISSUE` | `0` | không (mặc định 0 = tắt) | Hạn dùng tối thiểu còn lại khi xuất kho | đề xuất (M4) |
+| `EXPIRY_WARNING_DAYS` | `90` | không (mặc định 90) | Ngưỡng số ngày trước hạn tính là "cận date" | đã làm (M4) |
+| `MIN_SHELF_LIFE_DAYS_RECEIVE` | `0` | không (mặc định 0 = tắt) | Hạn dùng tối thiểu còn lại khi nhập kho | đã làm (M4) |
+| `MIN_SHELF_LIFE_DAYS_ISSUE` | `0` | không (mặc định 0 = tắt) | Hạn dùng tối thiểu còn lại khi xuất kho | đã làm (M4) |
 | `SEED_ADMIN_PASSWORD` | `…` | **có khi `NODE_ENV=production` lúc seed** | Mật khẩu admin cho seed nền; thiếu ở production ⇒ seed dừng | có (M0) |
 
 ## 4. Hạ tầng phụ
@@ -40,8 +40,8 @@ Sinh secret: `openssl rand -base64 48`. Đổi secret ⇒ mọi token hiện có
 | Tên | Ví dụ | Bắt buộc | Mô tả | Trạng thái |
 |---|---|---|---|---|
 | `LOG_LEVEL` | `info` | không (mặc định `info`; `debug` ở dev) | Mức log pino | có (M0) |
-| `JOBS_ENABLED` | `true` | không (mặc định `true`; `false` trong test) | Bật/tắt job nền | đề xuất (M4) |
-| `JOBS_TIMEZONE` | `Asia/Ho_Chi_Minh` | không | Múi giờ lịch cron | đề xuất (M4) |
+| `JOBS_ENABLED` | `true` | không (mặc định `true`; `false` trong test) | Bật/tắt job nền | đã làm (M4) |
+| `JOBS_TIMEZONE` | `Asia/Ho_Chi_Minh` | không | Múi giờ lịch cron | đã làm (M4) |
 | `SWAGGER_ENABLED` | `true` | không (mặc định: bật ở dev/staging, tắt ở production) | Bật Swagger UI | có (M0) |
 | `SWAGGER_USER` / `SWAGGER_PASSWORD` | `…` | chỉ khi bật Swagger ở production | Basic-auth cho Swagger | có (M0) |
 | `CLOUDINARY_CLOUD_NAME` | `my-cloud` | chỉ khi dùng upload (M7) | Tên cloud | có trong `.env.example` (chưa dùng) |

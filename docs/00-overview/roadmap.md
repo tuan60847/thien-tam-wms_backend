@@ -49,11 +49,15 @@ Phụ thuộc: không. Là điều kiện cho mọi milestone sau.
 
 **Kết quả thực tế M2:** `LoaiHangModule` (5 endpoint), `HangHoaModule` (5), `TyLeQuyDoiModule` (5); migration `m2_hang_hoa_catalog` (P-17 `maSP`, P-07 một phần: `HangHoa.donViTinhGia`, P-02 `createdById`/`updatedById` cho `HangHoa`). **Câu hỏi #30 (Q-HH-1) chưa được trả lời nên áp dụng phương án đề xuất** — giá tính theo `donViTinhGia`; nếu bạn chọn phương án khác (giá theo đơn vị cơ bản) thì sửa ở `hang-hoa.rules.ts`/`mapper` và bỏ cột. Chưa làm: kiểm tra "đơn vị đang nằm trong phiếu nháp" khi xóa đơn vị (cần cột `donViTinh` trên dòng phiếu, thêm ở M5).
 
-## M3 — Kho & đối tác (L)
+## M3 — Kho & đối tác (L) — ✅ đã triển khai (2026-10-06)
 
 `kho-vi-tri`, `khach-hang`, `nha-cung-cap`, `phuong-tien-van-chuyen` — bốn module độc lập nhau, làm song song được. Phải xong trước M4–M5 vì tồn kho cần vị trí, phiếu cần đối tác. `nha-cung-cap` có luồng "xác minh" ảnh hưởng phiếu nhập.
 
-## M4 — Lô & tồn kho (L)
+**Kết quả thực tế M3:** `KhoViTriModule` (10 endpoint), `KhachHangModule` (5), `NhaCungCapModule` (6, gồm `/xac-minh`), `PhuongTienVanChuyenModule` (5); migration `m3_kho_doi_tac` (`maNCC`, ngày hết hạn GPKD/GCN, người xác minh, người tạo/sửa, `isXeLanh`, nới độ dài cột). Các hàm cho milestone sau đã có sẵn và có test: `ViTriService.assertReceivable`, `KhachHangService.assertCanBuy`, `NhaCungCapService.assertCanSupply`, `PhuongTienService.assertUsable`. **Chưa làm:** hạn mức công nợ khách (chờ câu #44); kiểm tra xóa vị trí mới chỉ xét `TonKho` — M4/M5 bổ sung sổ biến động và dòng chứng từ.
+
+## M4 — Lô & tồn kho (L) — ✅ đã triển khai (2026-10-06)
+
+**Kết quả thực tế M4:** `SoLoModule` (list/detail/create/update/delete) và `TonKhoModule` (list, chi tiết, tổng hợp, gợi ý FEFO, sổ biến động, chuyển vị trí, điều chỉnh, đối soát); migration `m4_ton_kho_bien_dong` (bảng `bien_dong_ton_kho`, `CHECK so_luong >= 0` trên `ton_kho`, người tạo/sửa lô); job `expiry-scan` (00:05) và `stock-reconcile` (02:30) qua `@nestjs/schedule`, tắt bằng `JOBS_ENABLED=false`. Đường ghi tồn duy nhất cho M5/M6: `TonKhoService.increase/decrease` (nhận `tx`, tự ghi sổ biến động). **Chưa làm:** giữ hàng/đặt chỗ (câu #63), `chiHetHang` trong tổng hợp; unit test service ton-kho/so-lo mới ở mức quy tắc thuần, phần còn lại do e2e phủ.
 
 `so-lo` → `ton-kho`. Đây là **lõi rủi ro cao nhất** (tính đúng đắn của số liệu tồn): cập nhật có điều kiện, sổ biến động `BienDongTonKho`, chuyển vị trí, điều chỉnh, quy tắc kho lạnh, gợi ý FEFO. Cũng thêm job quét lô cận date/hết hạn ([background-jobs.md](../03-cross-cutting/background-jobs.md)). Phải xong và được test kỹ (kể cả test đồng thời) **trước** khi viết phiếu nhập/xuất.
 

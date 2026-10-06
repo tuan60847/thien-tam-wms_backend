@@ -52,6 +52,17 @@ enum LoaiKiemSoat {
   kiem_soat_dac_biet
 }
 
+// Loại biến động của sổ cái tồn kho (BienDongTonKho)
+enum LoaiBienDong {
+  nhap_kho
+  xuat_kho
+  huy_nhap
+  huy_xuat
+  chuyen_di
+  chuyen_den
+  dieu_chinh
+}
+
 // ------------------------------------------------------------
 // PHÂN QUYỀN NGƯỜI DÙNG
 // ------------------------------------------------------------
@@ -89,15 +100,18 @@ model User {
   phieuXuatHangTao PhieuXuatHang[] @relation("PhieuXuatHangCreatedBy")
   phieuNhapHangTao PhieuNhapHang[] @relation("PhieuNhapHangCreatedBy")
 
-  hangHoaTao        HangHoa[]       @relation("HangHoaCreatedBy")
-  hangHoaSua        HangHoa[]       @relation("HangHoaUpdatedBy")
-  khachHangTao      KhachHang[]     @relation("KhachHangCreatedBy")
-  khachHangSua      KhachHang[]     @relation("KhachHangUpdatedBy")
-  nhaCungCapTao     NhaCungCap[]    @relation("NhaCungCapCreatedBy")
-  nhaCungCapSua     NhaCungCap[]    @relation("NhaCungCapUpdatedBy")
-  nhaCungCapXacMinh NhaCungCap[]    @relation("NhaCungCapXacMinhBy")
+  hangHoaTao        HangHoa[]        @relation("HangHoaCreatedBy")
+  hangHoaSua        HangHoa[]        @relation("HangHoaUpdatedBy")
+  khachHangTao      KhachHang[]      @relation("KhachHangCreatedBy")
+  khachHangSua      KhachHang[]      @relation("KhachHangUpdatedBy")
+  nhaCungCapTao     NhaCungCap[]     @relation("NhaCungCapCreatedBy")
+  nhaCungCapSua     NhaCungCap[]     @relation("NhaCungCapUpdatedBy")
+  nhaCungCapXacMinh NhaCungCap[]     @relation("NhaCungCapXacMinhBy")
   refreshTokens     RefreshToken[]
   nhatKy            NhatKyHeThong[]
+  soLoTao           SoLo[]           @relation("SoLoCreatedBy")
+  soLoSua           SoLo[]           @relation("SoLoUpdatedBy")
+  bienDongTonKho    BienDongTonKho[]
 
   @@map("user")
 }
@@ -187,12 +201,17 @@ model TyLeQuyDoi {
 
 model SoLo {
   id        String        @id @default(uuid())
-  tenLo     String        @map("ten_lo")
+  tenLo     String        @map("ten_lo") @db.VarChar(50)
   ngaySX    DateTime?     @map("ngay_sx") @db.Date
   hanSuDung DateTime      @map("han_su_dung") @db.Date
   trangThai TrangThaiSoLo @default(con_han) @map("trang_thai") // con_han / can_date / het_han
   createdAt DateTime      @default(now()) @map("created_at")
   updatedAt DateTime      @updatedAt @map("updated_at")
+
+  createdById String? @map("created_by_id")
+  createdBy   User?   @relation("SoLoCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedById String? @map("updated_by_id")
+  updatedBy   User?   @relation("SoLoUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
 
   hangHoaId String  @map("hang_hoa_id")
   hangHoa   HangHoa @relation(fields: [hangHoaId], references: [id])
@@ -200,6 +219,7 @@ model SoLo {
   chiTietPhieuXuatHangs ChiTietPhieuXuatHang[]
   chiTietPhieuNhapHangs ChiTietPhieuNhapHang[]
   tonKhos               TonKho[]
+  bienDongs             BienDongTonKho[]
 
   @@unique([hangHoaId, tenLo])
   @@index([hanSuDung])
@@ -232,7 +252,8 @@ model ViTri {
   khoId String @map("kho_id")
   kho   Kho    @relation(fields: [khoId], references: [id])
 
-  tonKhos TonKho[]
+  tonKhos   TonKho[]
+  bienDongs BienDongTonKho[]
 
   @@unique([khoId, tenViTri])
   @@map("vi_tri")
@@ -503,4 +524,31 @@ model BoDemMa {
 
   @@id([tienTo, ngay])
   @@map("bo_dem_ma")
+}
+
+// Sổ cái biến động tồn kho (append-only). Với mỗi (soLoId, viTriId):
+// TonKho.soLuong = tổng soLuongThayDoi. Xem docs/03-cross-cutting/audit-trail.md
+model BienDongTonKho {
+  id             String       @id @default(uuid())
+  loai           LoaiBienDong
+  soLuongThayDoi Int          @map("so_luong_thay_doi") // có dấu, đơn vị cơ bản
+  soLuongSau     Int          @map("so_luong_sau")
+  loaiThamChieu  String?      @map("loai_tham_chieu") @db.VarChar(50)
+  thamChieuId    String?      @map("tham_chieu_id") @db.VarChar(36)
+  lyDo           String?      @map("ly_do") @db.VarChar(255)
+  createdAt      DateTime     @default(now()) @map("created_at")
+
+  soLoId String @map("so_lo_id")
+  soLo   SoLo   @relation(fields: [soLoId], references: [id])
+
+  viTriId String @map("vi_tri_id")
+  viTri   ViTri  @relation(fields: [viTriId], references: [id])
+
+  createdById String? @map("created_by_id")
+  createdBy   User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([soLoId, createdAt])
+  @@index([viTriId, createdAt])
+  @@index([loaiThamChieu, thamChieuId])
+  @@map("bien_dong_ton_kho")
 }

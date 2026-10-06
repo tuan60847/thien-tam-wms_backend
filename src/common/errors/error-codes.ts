@@ -211,6 +211,52 @@ const DEFINITIONS = {
       'Phương tiện đã được sử dụng nên không thể xóa, hãy chuyển sang ngừng sử dụng',
   },
 
+  SO_LO_NOT_FOUND: { status: 404, message: 'Không tìm thấy số lô' },
+  SO_LO_NAME_TAKEN: {
+    status: 409,
+    message: 'Số lô này đã tồn tại cho hàng hóa',
+  },
+  SO_LO_DATE_INVALID: {
+    status: 422,
+    message:
+      'Ngày sản xuất hoặc hạn sử dụng không hợp lệ hoặc không khớp với lô đã có',
+  },
+  SO_LO_EXPIRED: { status: 422, message: 'Lô đã hết hạn sử dụng' },
+  SO_LO_NEAR_EXPIRY: {
+    status: 422,
+    message:
+      'Lô sắp hết hạn, không đạt thời hạn sử dụng tối thiểu để nhập/xuất',
+  },
+  SO_LO_IN_USE: {
+    status: 409,
+    message: 'Lô đã phát sinh dữ liệu nên không thể xóa hoặc đổi tên',
+  },
+  SO_LO_EXPIRY_LOCKED: {
+    status: 409,
+    message: 'Lô đã được xuất kho nên không thể thay đổi hạn sử dụng',
+  },
+
+  TON_KHO_NOT_FOUND: {
+    status: 404,
+    message: 'Không tìm thấy dòng tồn kho',
+  },
+  TON_KHO_INSUFFICIENT: {
+    status: 409,
+    message: (p) => `Số lượng tồn không đủ (còn ${Number(p.conLai ?? 0)})`,
+  },
+  TON_KHO_COLD_CHAIN_VIOLATION: {
+    status: 422,
+    message: 'Hàng cần bảo quản lạnh chỉ được đặt ở vị trí cấp đông',
+  },
+  TON_KHO_SAME_LOCATION: {
+    status: 422,
+    message: 'Vị trí đích phải khác vị trí nguồn',
+  },
+  TON_KHO_ADJUST_NO_CHANGE: {
+    status: 422,
+    message: 'Số lượng điều chỉnh trùng với tồn hiện tại',
+  },
+
   COMMON_NOT_FOUND: {
     status: 404,
     message: 'Không tìm thấy tài nguyên yêu cầu',

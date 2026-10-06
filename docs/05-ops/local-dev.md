@@ -73,6 +73,8 @@ Chỉ trên máy dev. Cấm chạy ở bất kỳ môi trường dùng chung nà
 | `prisma migrate dev` đòi shadow database | User DB cần quyền `CREATE`; hoặc cấu hình shadow DB riêng trong `prisma.config.ts` |
 | `Cannot find module '...'` sau khi pull | Chạy `yarn install` và `npx prisma generate` |
 | Import lỗi `ERR_MODULE_NOT_FOUND` | Thiếu đuôi `.js` ở import tương đối (ESM) |
+| `Tablespace for table ... exists. Please DISCARD the tablespace before IMPORT`, `Table ... doesn't exist in engine`, `_prisma_migrations already exists` dù database vừa tạo lại (thường gặp với XAMPP/MariaDB sau khi xóa thư mục dữ liệu hoặc `ibdata1` lệch với các file `.ibd`) | Từ điển nội bộ của InnoDB (`ibdata1`) còn mục ma của database cũ. Cách nhanh và an toàn: **dùng tên database mới** (ví dụ `thienTamWMS_v2` và `thienTamWMS_v2_test`) và sửa `DATABASE_URL` trong `.env`, `.env.test`. Chỉ khi cần dọn hẳn mới Stop MySQL rồi dời `ibdata1`, `ib_logfile*` đi — việc này xóa mọi bảng InnoDB của XAMPP |
+| `Column count of mysql.proc is wrong` | Chạy `sudo /Applications/XAMPP/xamppfiles/bin/mysql_upgrade -u root --force` rồi restart MySQL |
 | e2e từ chối chạy: "DATABASE_URL không trỏ tới DB test" | `.env.test` phải trỏ DB tên kết thúc `_test` |
 | Cài `prisma` kéo bản rc không khớp client | Ghim `prisma` cùng phiên bản `@prisma/client` (hiện `^7.10.0`) |
 

@@ -136,7 +136,8 @@ function setup(
         khoById.get(where.id) ?? null,
     ),
   };
-  const client = { viTri, tonKho, kho };
+  const bienDongTonKho = { count: vi.fn(async () => 0) };
+  const client = { viTri, tonKho, bienDongTonKho, kho };
   const prisma = {
     ...client,
     $transaction: vi.fn(async (fn: (tx: typeof client) => Promise<unknown>) =>

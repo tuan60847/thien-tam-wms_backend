@@ -3,6 +3,7 @@ import {
   Module,
   type NestModule,
 } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ConfigModule, type ConfigType } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 import { ThrottlerModule } from '@nestjs/throttler';
@@ -25,6 +26,8 @@ import { NhaCungCapModule } from './nha-cung-cap/nha-cung-cap.module.js';
 import { PhuongTienVanChuyenModule } from './phuong-tien-van-chuyen/phuong-tien-van-chuyen.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { RolesModule } from './roles/roles.module.js';
+import { SoLoModule } from './so-lo/so-lo.module.js';
+import { TonKhoModule } from './ton-kho/ton-kho.module.js';
 import { TyLeQuyDoiModule } from './ty-le-quy-doi/ty-le-quy-doi.module.js';
 import { UsersModule } from './users/users.module.js';
 
@@ -100,6 +103,7 @@ const REQUEST_ID_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
         ],
       }),
     }),
+    ScheduleModule.forRoot(),
     ClockModule,
     ErrorsModule,
     CodeGeneratorModule,
@@ -114,6 +118,8 @@ const REQUEST_ID_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
     KhachHangModule,
     NhaCungCapModule,
     PhuongTienVanChuyenModule,
+    SoLoModule,
+    TonKhoModule,
     AuthModule,
     HealthModule,
   ],

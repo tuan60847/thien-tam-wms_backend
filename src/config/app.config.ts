@@ -11,6 +11,13 @@ export interface AppConfig {
   logLevel: LogLevel;
   // Max POST /auth/login attempts per minute per IP.
   loginRateLimit: number;
+  // Days before expiry from which a lot counts as "can_date" (near expiry).
+  expiryWarningDays: number;
+  // Minimum remaining shelf life (days) to receive / issue a lot; 0 = rule off.
+  minShelfLifeDaysReceive: number;
+  minShelfLifeDaysIssue: number;
+  jobsEnabled: boolean;
+  jobsTimezone: string;
   swaggerEnabled: boolean;
   swaggerUser: string | null;
   swaggerPassword: string | null;
@@ -52,6 +59,26 @@ export function parseBoolean(
   throw new Error(`Giá trị boolean không hợp lệ: ${value}`);
 }
 
+function parseIntInRange(
+  env: NodeJS.ProcessEnv,
+  name: string,
+  fallback: number,
+  min: number,
+  max: number,
+): number {
+  const raw = env[name];
+  if (raw === undefined || raw === '') {
+    return fallback;
+  }
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < min || value > max) {
+    throw new Error(
+      `${name} phải là số nguyên trong khoảng ${min}-${max}: ${raw}`,
+    );
+  }
+  return value;
+}
+
 export function loadAppConfig(env: NodeJS.ProcessEnv): AppConfig {
   const nodeEnv = parseNodeEnv(env.NODE_ENV);
   const port = Number(env.PORT ?? 3000);
@@ -68,6 +95,34 @@ export function loadAppConfig(env: NodeJS.ProcessEnv): AppConfig {
   const loginRateLimit = Number(env.LOGIN_RATE_LIMIT ?? 5);
   if (!Number.isInteger(loginRateLimit) || loginRateLimit < 1) {
     throw new Error(`LOGIN_RATE_LIMIT không hợp lệ: ${env.LOGIN_RATE_LIMIT}`);
+  }
+
+  const expiryWarningDays = parseIntInRange(
+    env,
+    'EXPIRY_WARNING_DAYS',
+    90,
+    1,
+    365,
+  );
+  const minShelfLifeDaysReceive = parseIntInRange(
+    env,
+    'MIN_SHELF_LIFE_DAYS_RECEIVE',
+    0,
+    0,
+    3650,
+  );
+  const minShelfLifeDaysIssue = parseIntInRange(
+    env,
+    'MIN_SHELF_LIFE_DAYS_ISSUE',
+    0,
+    0,
+    3650,
+  );
+  const jobsTimezone = env.JOBS_TIMEZONE || 'Asia/Ho_Chi_Minh';
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: jobsTimezone });
+  } catch {
+    throw new Error(`JOBS_TIMEZONE không hợp lệ: ${jobsTimezone}`);
   }
 
   const trustProxy = env.TRUST_PROXY ? Number(env.TRUST_PROXY) : false;
@@ -104,6 +159,11 @@ export function loadAppConfig(env: NodeJS.ProcessEnv): AppConfig {
     trustProxy,
     logLevel,
     loginRateLimit,
+    expiryWarningDays,
+    minShelfLifeDaysReceive,
+    minShelfLifeDaysIssue,
+    jobsEnabled: parseBoolean(env.JOBS_ENABLED, true),
+    jobsTimezone,
     swaggerEnabled,
     swaggerUser,
     swaggerPassword,

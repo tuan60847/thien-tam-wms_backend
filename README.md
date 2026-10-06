@@ -25,8 +25,8 @@ Xây dựng bằng [NestJS](https://nestjs.com) 12 (ESM) + TypeScript + Prisma 7
 | — | Auth: đăng nhập, refresh, đăng xuất, phân quyền theo role | Xong |
 | M1 | Vai trò và người dùng | Xong |
 | M2 | Loại hàng, hàng hóa, tỷ lệ quy đổi đơn vị | Xong |
-| M3 | Kho và vị trí, khách hàng, nhà cung cấp, phương tiện vận chuyển | Chưa làm |
-| M4 | Số lô và tồn kho | Chưa làm |
+| M3 | Kho và vị trí, khách hàng, nhà cung cấp, phương tiện vận chuyển | Xong |
+| M4 | Số lô và tồn kho | Xong |
 | M5 | Phiếu nhập hàng, thanh toán nhà cung cấp | Chưa làm |
 | M6 | Phiếu xuất hàng, thu công nợ | Chưa làm |
 | M7 | Báo cáo, tệp đính kèm | Chưa làm |

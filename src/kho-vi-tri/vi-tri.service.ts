@@ -156,8 +156,11 @@ export class ViTriService {
       if (!current) {
         throw new AppException('VI_TRI_NOT_FOUND');
       }
-      const everUsed = await tx.tonKho.count({ where: { viTriId: id } });
-      if (everUsed > 0) {
+      const [stocked, moved] = await Promise.all([
+        tx.tonKho.count({ where: { viTriId: id } }),
+        tx.bienDongTonKho.count({ where: { viTriId: id } }),
+      ]);
+      if (stocked + moved > 0) {
         throw new AppException('VI_TRI_IN_USE');
       }
       await tx.viTri.delete({ where: { id } });

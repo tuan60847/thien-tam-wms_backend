@@ -1,3 +1,4 @@
+import { toBaseQuantity } from './unit-conversion.js';
 import { Injectable } from '@nestjs/common';
 import type { Prisma, TyLeQuyDoi } from '@prisma/client';
 import { AuditService } from '../audit/audit.service.js';
@@ -185,6 +186,30 @@ export class TyLeQuyDoiService {
     return unit
       ? { donViTinh: unit.donViTinh, heSoQuyDoi: unit.soLuongQuyDoi }
       : null;
+  }
+
+  // Quantity entered in `donViTinh` (default: the base unit) -> base-unit quantity.
+  async toBase(
+    hangHoaId: string,
+    soLuong: number,
+    donViTinh?: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<number> {
+    if (!donViTinh) {
+      return toBaseQuantity(soLuong, 1);
+    }
+    const unit = await this.resolveUnit(hangHoaId, donViTinh, tx);
+    if (!unit) {
+      throw new AppException('VALIDATION_FAILED', {
+        details: [
+          {
+            field: 'donViTinh',
+            messages: ['Đơn vị tính không thuộc hàng hóa này'],
+          },
+        ],
+      });
+    }
+    return toBaseQuantity(soLuong, unit.heSoQuyDoi);
   }
 
   private async getUnit(hangHoaId: string, id: string): Promise<TyLeQuyDoi> {
