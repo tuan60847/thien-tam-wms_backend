@@ -571,15 +571,12 @@ describe('Phiếu nhập hàng và thanh toán NCC (e2e)', () => {
       const receipt = await newReceipt([line({ soLuong: 1 })]);
       await confirm(receipt.id).expect(200);
       const bad = (soTien: string, ngayThanhToan: string) =>
-        http()
-          .post('/api/v1/phieu-thanh-toan')
-          .set(as('ketoan'))
-          .send({
-            phieuNhapHangId: receipt.id,
-            soTien,
-            ngayThanhToan,
-            phuongThuc: 'tien_mat',
-          });
+        http().post('/api/v1/phieu-thanh-toan').set(as('ketoan')).send({
+          phieuNhapHangId: receipt.id,
+          soTien,
+          ngayThanhToan,
+          phuongThuc: 'tien_mat',
+        });
       expect((await bad('0', vnDate(0))).status).toBe(400);
       expect((await bad('10.123', vnDate(0))).status).toBe(400);
       expect(((await bad('10', vnDate(2))).body as ErrorBody).code).toBe(

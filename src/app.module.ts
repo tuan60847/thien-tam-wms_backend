@@ -24,6 +24,8 @@ import { HealthModule } from './health/health.module.js';
 import { LoaiHangModule } from './loai-hang/loai-hang.module.js';
 import { NhaCungCapModule } from './nha-cung-cap/nha-cung-cap.module.js';
 import { PhieuNhapHangModule } from './phieu-nhap-hang/phieu-nhap-hang.module.js';
+import { PhieuThuCongNoModule } from './phieu-thu-cong-no/phieu-thu-cong-no.module.js';
+import { PhieuXuatHangModule } from './phieu-xuat-hang/phieu-xuat-hang.module.js';
 import { PhieuThanhToanModule } from './phieu-thanh-toan/phieu-thanh-toan.module.js';
 import { PhuongTienVanChuyenModule } from './phuong-tien-van-chuyen/phuong-tien-van-chuyen.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
@@ -124,6 +126,8 @@ const REQUEST_ID_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
     TonKhoModule,
     PhieuNhapHangModule,
     PhieuThanhToanModule,
+    PhieuXuatHangModule,
+    PhieuThuCongNoModule,
     AuthModule,
     HealthModule,
   ],

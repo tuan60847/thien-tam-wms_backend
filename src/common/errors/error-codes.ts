@@ -309,6 +309,61 @@ const DEFINITIONS = {
     message: 'Phiếu thanh toán đã được hủy trước đó',
   },
 
+  PHIEU_XUAT_NOT_FOUND: {
+    status: 404,
+    message: 'Không tìm thấy phiếu xuất hàng',
+  },
+  PHIEU_XUAT_INVALID_STATE: {
+    status: 409,
+    message: 'Phiếu xuất không ở trạng thái cho phép thực hiện thao tác này',
+  },
+  PHIEU_XUAT_EMPTY: {
+    status: 422,
+    message: 'Phiếu xuất chưa có mặt hàng nào',
+  },
+  PHIEU_XUAT_DUPLICATE_LINE: {
+    status: 422,
+    message: 'Phiếu có hai dòng trùng lô và vị trí, hãy gộp lại',
+  },
+  PHIEU_XUAT_UNIT_INVALID: {
+    status: 422,
+    message: 'Đơn vị tính không hợp lệ cho hàng hóa này',
+  },
+  PHIEU_XUAT_PRICE_BELOW_MIN: {
+    status: 422,
+    message: 'Đơn giá thấp hơn mức tối thiểu cho phép',
+  },
+  PHIEU_XUAT_LOT_NOT_AT_LOCATION: {
+    status: 422,
+    message: 'Lô này không có hàng tại vị trí đã chọn',
+  },
+  PHIEU_XUAT_CANNOT_REVERSE: {
+    status: 409,
+    message: 'Không thể hủy vì phiếu đã có thu tiền, hãy hủy phiếu thu trước',
+  },
+
+  PHIEU_THU_NOT_FOUND: {
+    status: 404,
+    message: 'Không tìm thấy phiếu thu công nợ',
+  },
+  PHIEU_THU_ORDER_INVALID_STATE: {
+    status: 409,
+    message: 'Chỉ thu tiền được cho phiếu xuất đã xuất kho',
+  },
+  PHIEU_THU_EXCEEDS_DEBT: {
+    status: 422,
+    message: (p) =>
+      `Số tiền thu vượt quá số còn nợ (${Number(p.conNo ?? 0).toFixed(2)})`,
+  },
+  PHIEU_THU_DATE_INVALID: {
+    status: 422,
+    message: 'Ngày thu tiền không hợp lệ',
+  },
+  PHIEU_THU_ALREADY_VOID: {
+    status: 409,
+    message: 'Phiếu thu đã được hủy trước đó',
+  },
+
   COMMON_NOT_FOUND: {
     status: 404,
     message: 'Không tìm thấy tài nguyên yêu cầu',

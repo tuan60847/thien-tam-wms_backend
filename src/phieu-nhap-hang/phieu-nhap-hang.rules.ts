@@ -1,7 +1,6 @@
 import type { TrangThaiPhieuNhap } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import { AppException } from '../common/errors/app.exception.js';
-import { sumMoney } from '../common/money.js';
 
 export type TrangThaiThanhToan =
   'chua_thanh_toan' | 'thanh_toan_mot_phan' | 'da_thanh_toan';
@@ -34,17 +33,6 @@ export function assertEditable(trangThai: TrangThaiPhieuNhap): void {
     throw new AppException('PHIEU_NHAP_INVALID_STATE');
   }
 }
-
-export interface MoneyLine {
-  soLuong: number;
-  donGia: Prisma.Decimal;
-}
-
-export const lineAmount = (line: MoneyLine): Prisma.Decimal =>
-  line.donGia.mul(line.soLuong);
-
-export const computeTotals = (lines: MoneyLine[]): Prisma.Decimal =>
-  sumMoney(lines.map(lineAmount));
 
 // Payment status is only meaningful once the goods are received.
 export function paymentStatus(

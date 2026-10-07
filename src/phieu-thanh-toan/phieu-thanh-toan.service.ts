@@ -13,7 +13,7 @@ import {
 } from '../common/clock/vn-date.js';
 import type { HuyPhieuDto } from '../common/dto/huy-phieu.dto.js';
 import { AppException } from '../common/errors/app.exception.js';
-import { moneyString, ZERO } from '../common/money.js';
+import { computeTotals, moneyString, ZERO } from '../common/money.js';
 import {
   paginate,
   parseSort,
@@ -21,7 +21,6 @@ import {
   type PagedResponse,
 } from '../common/pagination/paginate.js';
 import { PhieuNhapHangService } from '../phieu-nhap-hang/phieu-nhap-hang.service.js';
-import { computeTotals } from '../phieu-nhap-hang/phieu-nhap-hang.rules.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   CongNoNccQueryDto,

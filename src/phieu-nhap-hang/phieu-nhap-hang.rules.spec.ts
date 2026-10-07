@@ -1,10 +1,9 @@
 import { Prisma } from '@prisma/client';
+import { computeTotals, lineAmount } from '../common/money.js';
 import {
   assertEditable,
   assertTransition,
   canTransition,
-  computeTotals,
-  lineAmount,
   paymentStatus,
 } from './phieu-nhap-hang.rules.js';
 

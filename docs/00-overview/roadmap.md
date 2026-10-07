@@ -67,7 +67,9 @@ Phụ thuộc: không. Là điều kiện cho mọi milestone sau.
 
 `phieu-nhap-hang` → `phieu-thanh-toan`. Làm nhập trước xuất vì tồn phải có hàng thì mới có gì để xuất, và e2e M6 dùng phiếu nhập để dựng dữ liệu. Thanh toán NCC làm ngay sau vì cần phiếu nhập đã xác nhận và có cùng khuôn với thu công nợ.
 
-## M6 — Xuất hàng & thu công nợ (XL)
+## M6 — Xuất hàng & thu công nợ (XL) — ✅ đã triển khai (2026-10-06)
+
+**Kết quả thực tế M6:** `PhieuXuatHangModule` (8 endpoint: list, chi tiết, tạo, sửa, xóa, `xuat-kho`, `giao-hang`, `huy`) và `PhieuThuCongNoModule` (4 endpoint + `GET /khach-hang/:id/cong-no`); migration `m6_phieu_xuat_thu_cong_no` (đơn vị/hệ số/số lượng cơ bản/vị trí trên dòng, xe/ngày xuất/ngày giao thực tế/người xuất/hủy trên phiếu, phương thức/hủy trên phiếu thu, CHECK). Xuất kho gọi `TonKhoService.decrease` (`xuat_kho`), hủy sau xuất gọi `increase` (`huy_xuat`, bỏ qua kiểm vị trí hoạt động). Kiểm tra giá tối thiểu theo đơn vị (chỉ quản lý/admin được bán dưới giá, có nhật ký), cảnh báo FEFO mềm, tuổi nợ theo nhóm 0-30/31-60/61-90/>90. **Chưa làm:** hạn mức công nợ khách (câu #44: `hanMucCongNo` và `vuotHanMuc` trả `null`), giữ hàng khi nháp (câu #63), role bán hàng riêng (câu #82). **Lệch so với kế hoạch:** route công nợ khách nằm trong `PhieuThuCongNoModule` (không phải `KhachHangController`) để tránh phụ thuộc vòng; `conNoSauKhiThu` là số còn nợ của phiếu xuất tại thời điểm đọc; `computeTotals`/`lineAmount` chuyển sang `common/money.ts` dùng chung cho nhập/xuất.
 
 `phieu-xuat-hang` → `phieu-thu-cong-no`. Phức tạp nhất: FEFO, kiểm tra giấy phép khách, giá tối thiểu, hạn mức công nợ (nếu chốt), hoàn tác khi hủy. Sau milestone này hệ thống chạy được trọn vòng nhập → lưu kho → xuất → thu tiền: **đây là MVP**.
 

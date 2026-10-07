@@ -1,7 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import { formatDateOnly } from '../common/clock/vn-date.js';
-import { moneyString, sumMoney } from '../common/money.js';
-import { computeTotals } from '../phieu-nhap-hang/phieu-nhap-hang.rules.js';
+import { computeTotals, moneyString, sumMoney } from '../common/money.js';
 import type { PhieuThanhToanResponseDto } from './dto/phieu-thanh-toan.dto.js';
 
 const userSelect = { select: { id: true, maNV: true, hoTen: true } } as const;
