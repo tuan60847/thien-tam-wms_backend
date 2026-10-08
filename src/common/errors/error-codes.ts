@@ -426,6 +426,79 @@ const DEFINITIONS = {
       `Công nợ vượt hạn mức của khách hàng (hạn mức ${Number(p.hanMuc ?? 0).toFixed(2)}, sau phiếu này ${Number(p.sauPhieu ?? 0).toFixed(2)})`,
   },
 
+  DOI_TRU_NOT_FOUND: {
+    status: 404,
+    message: 'Không tìm thấy bản ghi đối trừ chứng từ',
+  },
+  DOI_TRU_ALREADY_REMOVED: {
+    status: 409,
+    message: 'Khoản đối trừ này đã được bỏ trước đó',
+  },
+  DOI_TRU_EXCEEDS_UNALLOCATED: {
+    status: 422,
+    message: (p) =>
+      `Số tiền đối trừ vượt quá số tiền chưa đối trừ của phiếu thu (${Number(p.conLai ?? 0).toFixed(2)})`,
+  },
+  PHIEU_THU_CUSTOMER_MISMATCH: {
+    status: 422,
+    message: 'Phiếu xuất không thuộc khách hàng của phiếu thu',
+  },
+  PHIEU_THU_ALLOCATION_INVALID: {
+    status: 422,
+    message:
+      'Phân bổ tiền thu không hợp lệ (trùng phiếu, số tiền không dương hoặc vượt số tiền thu)',
+  },
+
+  TRA_LAI_NOT_FOUND: {
+    status: 404,
+    message: 'Không tìm thấy phiếu trả lại hàng',
+  },
+  TRA_LAI_INVALID_STATE: {
+    status: 409,
+    message: 'Phiếu trả lại không ở trạng thái cho phép thực hiện thao tác này',
+  },
+  TRA_LAI_EMPTY: { status: 422, message: 'Phiếu trả lại chưa có mặt hàng nào' },
+  TRA_LAI_ORDER_INVALID: {
+    status: 422,
+    message: 'Chỉ trả lại được hàng của phiếu xuất đã xuất kho hoặc đã giao',
+  },
+  TRA_LAI_LINE_INVALID: {
+    status: 422,
+    message: 'Dòng trả lại không thuộc phiếu xuất hoặc bị trùng',
+  },
+  TRA_LAI_UNIT_INVALID: {
+    status: 422,
+    message: 'Đơn vị tính không hợp lệ cho hàng hóa này',
+  },
+  TRA_LAI_QUANTITY_EXCEEDED: {
+    status: 422,
+    message: (p) =>
+      `Số lượng trả vượt số đã bán (còn được trả ${Number(p.conLai ?? 0)} theo đơn vị cơ bản)`,
+  },
+  TRA_LAI_EXCEEDS_DEBT: {
+    status: 422,
+    message:
+      'Giá trị hàng trả lớn hơn số còn nợ của phiếu xuất; hãy hủy hoặc bỏ đối trừ khoản đã thu trước',
+  },
+  TRA_LAI_DATE_INVALID: { status: 422, message: 'Ngày trả hàng không hợp lệ' },
+  TRA_LAI_CANNOT_REVERSE: {
+    status: 409,
+    message: 'Không thể hủy vì hàng đã được xuất hoặc chuyển đi khỏi kho',
+  },
+
+  BAO_CAO_RANGE_INVALID: {
+    status: 422,
+    message: 'Khoảng thời gian báo cáo không hợp lệ',
+  },
+  BAO_CAO_RANGE_TOO_LARGE: {
+    status: 422,
+    message: 'Khoảng thời gian báo cáo tối đa là 366 ngày',
+  },
+  BAO_CAO_TOO_MANY_GROUPS: {
+    status: 400,
+    message: 'Kết quả có quá nhiều nhóm (tối đa 1.000), hãy thu hẹp bộ lọc',
+  },
+
   COMMON_NOT_FOUND: {
     status: 404,
     message: 'Không tìm thấy tài nguyên yêu cầu',

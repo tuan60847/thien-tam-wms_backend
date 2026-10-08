@@ -1,12 +1,17 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
   IsBoolean,
   IsEnum,
   IsOptional,
   IsString,
   IsUUID,
   MaxLength,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { PaginationQueryDto } from '../../common/pagination/pagination-query.dto.js';
 import { ToBoolean, Trim } from '../../common/transformers.js';
 import { IsDateOnly } from '../../common/validators/is-date-only.js';
@@ -53,6 +58,75 @@ export class CreatePhieuThuDto {
     nullable: true,
     description: 'Mặc định lấy nhân viên bán hàng của phiếu xuất',
   })
+  @IsOptional()
+  @IsUUID()
+  nhanVienBanHangId?: string | null;
+}
+
+export class PhanBoThuDto {
+  @ApiProperty() @IsUUID() phieuXuatHangId!: string;
+
+  @ApiProperty({ example: '300000.00' })
+  @IsPositiveMoney()
+  soTien!: string;
+}
+
+// One receipt that pays several orders of the same customer ("thu tiền hàng loạt").
+export class CreateThuGopDto {
+  @ApiProperty() @IsUUID() khachHangId!: string;
+
+  @ApiProperty({ example: '1000000.00', description: 'Tổng số tiền thu' })
+  @IsPositiveMoney()
+  soTien!: string;
+
+  @ApiProperty({ example: '2026-10-08' })
+  @IsDateOnly()
+  ngayThanhToan!: string;
+
+  @ApiProperty({ enum: PHUONG_THUC })
+  @IsEnum(PHUONG_THUC)
+  phuongThuc!: PhuongThuc;
+
+  @ApiPropertyOptional({
+    type: [PhanBoThuDto],
+    description:
+      'Phân bổ tay cho từng phiếu xuất; phần còn lại (nếu có) ở số tiền chưa đối trừ',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(200)
+  @ValidateNested({ each: true })
+  @Type(() => PhanBoThuDto)
+  phanBo?: PhanBoThuDto[];
+
+  @ApiPropertyOptional({
+    description: 'true = tự phân bổ cho các phiếu còn nợ, cũ nhất trước (FIFO)',
+  })
+  @IsOptional()
+  @IsBoolean()
+  tuDongPhanBo?: boolean;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @Trim()
+  @IsString()
+  @MaxLength(255)
+  ghiChu?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @Trim()
+  @IsString()
+  @MaxLength(200)
+  nguoiNop?: string | null;
+
+  @ApiPropertyOptional({ nullable: true, example: '2026-10-08' })
+  @IsOptional()
+  @IsDateOnly()
+  ngayGhiSoQuy?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
   @IsOptional()
   @IsUUID()
   nhanVienBanHangId?: string | null;
@@ -113,7 +187,25 @@ export class PhieuThuResponseDto {
     maNV: string;
     hoTen: string;
   } | null;
-  @ApiProperty({ type: PhieuThuXuatDto }) phieuXuat!: PhieuThuXuatDto;
+  @ApiProperty({
+    type: PhieuThuXuatDto,
+    description:
+      'Phiếu xuất mà phiếu thu được lưu theo (phiếu đầu tiên của thu gộp)',
+  })
+  phieuXuat!: PhieuThuXuatDto;
+  @ApiProperty({ description: 'Các phiếu xuất mà phiếu thu này được áp vào' })
+  phanBo!: {
+    doiTruId: string;
+    phieuXuatId: string;
+    maPhieuXuatHang: string;
+    soTien: string;
+    daBo: boolean;
+  }[];
+  @ApiProperty({
+    example: '0.00',
+    description: 'Số tiền chưa đối trừ vào phiếu xuất nào',
+  })
+  soTienChuaDoiTru!: string;
   @ApiProperty({ nullable: true }) huyAt!: Date | null;
   @ApiProperty({ nullable: true }) huyBoi!: {
     id: string;

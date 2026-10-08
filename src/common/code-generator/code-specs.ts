@@ -10,6 +10,7 @@ export const CODE = {
   PHIEU_NHAP: { prefix: 'PN', dated: true, digits: 4 },
   PHIEU_XUAT: { prefix: 'PX', dated: true, digits: 4 },
   PHIEU_THU: { prefix: 'PT', dated: true, digits: 4 },
+  TRA_LAI: { prefix: 'TL', dated: true, digits: 4 },
   PHIEU_THANH_TOAN: { prefix: 'TT', dated: true, digits: 4 },
   KHACH_HANG: { prefix: 'KH', dated: false, digits: 5 },
   NHAN_VIEN: { prefix: 'NV', dated: false, digits: 4 },

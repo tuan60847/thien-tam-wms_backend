@@ -29,7 +29,8 @@ Xây dựng bằng [NestJS](https://nestjs.com) 12 (ESM) + TypeScript + Prisma 7
 | M4 | Số lô và tồn kho | Xong |
 | M5 | Phiếu nhập hàng, thanh toán nhà cung cấp | Xong |
 | M6 | Phiếu xuất hàng, thu công nợ | Xong |
-| M7 | Báo cáo, tệp đính kèm | Chưa làm |
+| M7 | Báo cáo, tệp đính kèm | Xong |
+| M8–M9 | Bổ sung theo MISA (hạn mức nợ, nhân viên kinh doanh, chiết khấu/thuế), thu gộp và đối trừ, trả lại hàng bán | Xong |
 
 Kế hoạch chi tiết từng module, quy ước và các câu hỏi cần chốt nằm trong [docs/](docs/README.md).
 
@@ -126,7 +127,9 @@ src/
   loai-hang/  hang-hoa/  ty-le-quy-doi/
   kho-vi-tri/  khach-hang/  nha-cung-cap/  phuong-tien-van-chuyen/
   so-lo/  ton-kho/  phieu-nhap-hang/  phieu-thanh-toan/
-  phieu-xuat-hang/  phieu-thu-cong-no/
+  phieu-xuat-hang/  phieu-thu-cong-no/  doi-tru-chung-tu/  tra-lai-hang-ban/
+  nhom-doi-tac/  dieu-khoan-thanh-toan/  nhan-vien-kinh-doanh/
+  tep-dinh-kem/  bao-cao/
 prisma/          # schema, migration, seed
 test/            # e2e và các hàm hỗ trợ test
 docs/            # kế hoạch và tài liệu chi tiết

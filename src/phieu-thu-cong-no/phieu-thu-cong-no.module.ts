@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { DoiTruChungTuModule } from '../doi-tru-chung-tu/doi-tru-chung-tu.module.js';
 import { NhanVienKinhDoanhModule } from '../nhan-vien-kinh-doanh/nhan-vien-kinh-doanh.module.js';
 import { PhieuXuatHangModule } from '../phieu-xuat-hang/phieu-xuat-hang.module.js';
 import {
@@ -8,7 +9,7 @@ import {
 import { PhieuThuCongNoService } from './phieu-thu-cong-no.service.js';
 
 @Module({
-  imports: [PhieuXuatHangModule, NhanVienKinhDoanhModule],
+  imports: [PhieuXuatHangModule, NhanVienKinhDoanhModule, DoiTruChungTuModule],
   controllers: [PhieuThuCongNoController, CongNoKhachHangController],
   providers: [PhieuThuCongNoService],
   exports: [PhieuThuCongNoService],

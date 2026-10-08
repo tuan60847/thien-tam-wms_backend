@@ -95,6 +95,7 @@ enum LoaiBienDong {
   chuyen_di
   chuyen_den
   dieu_chinh
+  tra_hang // khách trả lại hàng bán, nhập lại kho
 }
 
 // ------------------------------------------------------------

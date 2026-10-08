@@ -177,7 +177,25 @@ Tổng số endpoint: **109** (102 trong module nghiệp vụ + 7 hạ tầng).
 | GET | `/api/v1/phieu-thu-cong-no/:id` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Chi tiết | M6 |
 | POST | `/api/v1/phieu-thu-cong-no` | JWT | ADMIN, KE_TOAN | Lập phiếu thu | M6 |
 | POST | `/api/v1/phieu-thu-cong-no/:id/huy` | JWT | ADMIN, KE_TOAN | Hủy phiếu thu | M6 |
+| POST | `/api/v1/phieu-thu-cong-no/thu-gop` | JWT | ADMIN, KE_TOAN | Thu gộp: một phiếu thu cho nhiều phiếu xuất (phân bổ tay hoặc FIFO) | M9 |
 | GET | `/api/v1/khach-hang/:id/cong-no` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Công nợ phải thu của khách | M6 |
+
+## Đối trừ chứng từ (M9)
+
+| Method | Path | Auth | Roles | Mô tả |
+|---|---|---|---|---|
+| GET | `/api/v1/doi-tru-chung-tu`, `/:id` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Các khoản áp phiếu thu vào phiếu xuất |
+| POST | `/api/v1/doi-tru-chung-tu` | JWT | ADMIN, KE_TOAN | Áp số tiền chưa đối trừ của phiếu thu vào một phiếu xuất cùng khách |
+| POST | `/api/v1/doi-tru-chung-tu/:id/bo` | JWT | ADMIN, KE_TOAN | Bỏ đối trừ (tiền về số chưa đối trừ, nợ phiếu xuất tăng lại) |
+
+## Trả lại hàng bán (M9)
+
+| Method | Path | Auth | Roles | Mô tả |
+|---|---|---|---|---|
+| GET | `/api/v1/tra-lai-hang-ban`, `/:id` | JWT | mọi role | Danh sách, chi tiết |
+| POST, PATCH, DELETE | `/api/v1/tra-lai-hang-ban`, `/:id` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Lập, sửa, xóa phiếu nháp (gắn một phiếu xuất) |
+| POST | `/api/v1/tra-lai-hang-ban/:id/xac-nhan` | JWT | ADMIN, QUAN_LY_KHO | Nhập lại kho, giảm công nợ phiếu xuất |
+| POST | `/api/v1/tra-lai-hang-ban/:id/huy` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO* | Hủy; phiếu đã nhập lại kho chỉ ADMIN, QUAN_LY_KHO |
 
 ## Danh mục kinh doanh (bổ sung theo MISA)
 
@@ -193,7 +211,7 @@ Tổng số endpoint: **109** (102 trong module nghiệp vụ + 7 hạ tầng).
 | POST, PATCH | `/api/v1/nhan-vien-kinh-doanh`, `/:id` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Tạo, sửa, ngừng hoạt động |
 | DELETE | `/api/v1/nhan-vien-kinh-doanh/:id` | JWT | ADMIN | Xóa nhân viên chưa phát sinh dữ liệu |
 
-Khách hàng, nhà cung cấp, hàng hóa, phiếu xuất và phiếu thu nhận/trả thêm các trường mới (hạn mức nợ `soNoToiDa`, `soNgayDuocNo`, điều khoản, nhân viên, nhóm, địa lý, liên hệ; chiết khấu và thuế theo dòng phiếu xuất; `hanThanhToan`; `nguoiNop`...). Chưa có API cho: báo giá, trả lại hàng bán, đối trừ chứng từ, tài khoản ngân hàng, địa điểm giao hàng (bảng đã có trong schema).
+Khách hàng, nhà cung cấp, hàng hóa, phiếu xuất và phiếu thu nhận/trả thêm các trường mới (hạn mức nợ `soNoToiDa`, `soNgayDuocNo`, điều khoản, nhân viên, nhóm, địa lý, liên hệ; chiết khấu và thuế theo dòng phiếu xuất; `hanThanhToan`; `nguoiNop`...). Chưa có API cho: báo giá, tài khoản ngân hàng, địa điểm giao hàng (bảng đã có trong schema).
 
 ## Báo cáo — [bao-cao](../02-modules/bao-cao.md)
 

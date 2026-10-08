@@ -35,6 +35,7 @@ import { HangHoaService } from '../hang-hoa/hang-hoa.service.js';
 import { KhachHangService } from '../khach-hang/khach-hang.service.js';
 import { ViTriService } from '../kho-vi-tri/vi-tri.service.js';
 import { PhuongTienService } from '../phuong-tien-van-chuyen/phuong-tien.service.js';
+import { computeDebt, debtSelect, type Debt } from './phieu-xuat-hang.debt.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SoLoService } from '../so-lo/so-lo.service.js';
 import { TonKhoService } from '../ton-kho/ton-kho.service.js';
@@ -515,30 +516,15 @@ export class PhieuXuatHangService {
   async getReceivableSummary(
     id: string,
     tx?: Prisma.TransactionClient,
-  ): Promise<{
-    tongTien: Prisma.Decimal;
-    daThu: Prisma.Decimal;
-    conNo: Prisma.Decimal;
-  }> {
-    const client = tx ?? this.prisma;
-    const [lines, received] = await Promise.all([
-      client.chiTietPhieuXuatHang.findMany({
-        where: { phieuXuatHangId: id },
-        select: {
-          soLuong: true,
-          donGia: true,
-          tienChietKhau: true,
-          tienThueGtgt: true,
-        },
-      }),
-      client.phieuThuCongNo.aggregate({
-        where: { phieuXuatHangId: id, huyAt: null },
-        _sum: { soTien: true },
-      }),
-    ]);
-    const tongTien = computeNetTotals(lines).tongThanhToan;
-    const daThu = received._sum.soTien ?? ZERO;
-    return { tongTien, daThu, conNo: tongTien.minus(daThu) };
+  ): Promise<Debt> {
+    const row = await (tx ?? this.prisma).phieuXuatHang.findUnique({
+      where: { id },
+      select: debtSelect,
+    });
+    if (!row) {
+      throw new AppException('PHIEU_XUAT_NOT_FOUND');
+    }
+    return computeDebt(row);
   }
 
   // ===========================================================================
@@ -869,32 +855,19 @@ export class PhieuXuatHangService {
     return computeNetTotals(lines).tongThanhToan;
   }
 
-  // Open receivables of a customer: Σ (payable − effective receipts) over issued orders.
+  // Open receivables of a customer: Σ conNo over issued orders.
   async getOutstandingByCustomer(
     khachHangId: string,
     tx?: Prisma.TransactionClient,
   ): Promise<Prisma.Decimal> {
     const orders = await (tx ?? this.prisma).phieuXuatHang.findMany({
       where: { khachHangId, trangThai: { in: ['da_xuat_kho', 'da_giao'] } },
-      select: {
-        chiTietPhieuXuatHangs: {
-          select: {
-            soLuong: true,
-            donGia: true,
-            tienChietKhau: true,
-            tienThueGtgt: true,
-          },
-        },
-        phieuThuCongNos: { select: { soTien: true, huyAt: true } },
-      },
+      select: debtSelect,
     });
-    return orders.reduce((sum, order) => {
-      const total = computeNetTotals(order.chiTietPhieuXuatHangs).tongThanhToan;
-      const paid = order.phieuThuCongNos
-        .filter((r) => !r.huyAt)
-        .reduce((acc, r) => acc.plus(r.soTien), ZERO);
-      return sum.plus(total).minus(paid);
-    }, ZERO);
+    return orders.reduce(
+      (sum, order) => sum.plus(computeDebt(order).conNo),
+      ZERO,
+    );
   }
 
   // Credit limit (open question #44): 0 means "no limit". `extra` is what this order adds
@@ -951,12 +924,17 @@ export class PhieuXuatHangService {
     tx: Prisma.TransactionClient,
   ): Promise<void> {
     // First consistent read of this transaction, taken after the row lock above.
-    const receipts = await tx.phieuThuCongNo.count({
-      where: { phieuXuatHangId: id, huyAt: null },
-    });
-    if (receipts > 0) {
+    const [receipts, returns] = await Promise.all([
+      tx.doiTruChungTu.count({
+        where: { phieuXuatHangId: id, daBoDoiTru: false },
+      }),
+      tx.traLaiHangBan.count({
+        where: { phieuXuatHangId: id, trangThai: 'da_nhap_kho' },
+      }),
+    ]);
+    if (receipts + returns > 0) {
       throw new AppException('PHIEU_XUAT_CANNOT_REVERSE', {
-        details: { soPhieuThu: receipts },
+        details: { soPhieuThu: receipts, soPhieuTraLai: returns },
       });
     }
     const lines = await tx.chiTietPhieuXuatHang.findMany({
@@ -1011,19 +989,24 @@ export class PhieuXuatHangService {
   private async idsByReceivableStatus(
     status: 'chua_thu' | 'thu_mot_phan' | 'da_thu_du',
   ): Promise<string[]> {
+    // settled = receipts applied + goods returned
     const condition = {
-      chua_thu: Prisma.sql`paid = 0 AND total > 0`,
-      thu_mot_phan: Prisma.sql`paid > 0 AND paid < total`,
-      da_thu_du: Prisma.sql`paid >= total`,
+      chua_thu: Prisma.sql`settled = 0 AND total > 0`,
+      thu_mot_phan: Prisma.sql`settled > 0 AND settled < total`,
+      da_thu_du: Prisma.sql`settled >= total`,
     }[status];
     const rows = await this.prisma.$queryRaw<{ id: string }[]>`
       SELECT id FROM (
         SELECT p.id,
           (SELECT COALESCE(SUM(c.so_luong * c.don_gia - c.tien_chiet_khau + c.tien_thue_gtgt), 0)
              FROM chi_tiet_phieu_xuat_hang c WHERE c.phieu_xuat_hang_id = p.id) AS total,
-          (SELECT COALESCE(SUM(t.so_tien), 0)
-             FROM phieu_thu_cong_no t
-            WHERE t.phieu_xuat_hang_id = p.id AND t.huy_at IS NULL) AS paid
+          (SELECT COALESCE(SUM(d.so_tien_doi_tru), 0)
+             FROM doi_tru_chung_tu d
+            WHERE d.phieu_xuat_hang_id = p.id AND d.da_bo_doi_tru = 0)
+          + (SELECT COALESCE(SUM(l.so_luong * l.don_gia - l.tien_chiet_khau), 0)
+               FROM chi_tiet_tra_lai l
+               JOIN tra_lai_hang_ban t ON t.id = l.tra_lai_id
+              WHERE t.phieu_xuat_hang_id = p.id AND t.trang_thai = 'da_nhap_kho') AS settled
         FROM phieu_xuat_hang p
         WHERE p.trang_thai IN ('da_xuat_kho', 'da_giao')
       ) x WHERE ${condition}`;

@@ -1,13 +1,8 @@
 import type { Prisma } from '@prisma/client';
 import { formatDateOnly } from '../common/clock/vn-date.js';
-import {
-  computeNetTotals,
-  lineAmount,
-  moneyString,
-  sumMoney,
-  ZERO,
-} from '../common/money.js';
+import { lineAmount, moneyString, ZERO } from '../common/money.js';
 import { computeStatus } from '../so-lo/so-lo.rules.js';
+import { computeDebt, debtSelect } from './phieu-xuat-hang.debt.js';
 import type {
   ChiTietXuatResponseDto,
   PhieuXuatListItemDto,
@@ -24,15 +19,7 @@ const khachSelect = { select: { id: true, maKH: true, tenKH: true } } as const;
 export const phieuXuatListInclude = {
   khachHang: khachSelect,
   createdBy: userSelect,
-  chiTietPhieuXuatHangs: {
-    select: {
-      soLuong: true,
-      donGia: true,
-      tienChietKhau: true,
-      tienThueGtgt: true,
-    },
-  },
-  phieuThuCongNos: { select: { soTien: true, huyAt: true } },
+  ...debtSelect,
 } as const satisfies Prisma.PhieuXuatHangInclude;
 
 export const phieuXuatDetailInclude = {
@@ -58,7 +45,27 @@ export const phieuXuatDetailInclude = {
       viTri: { include: { kho: { select: { id: true, tenKho: true } } } },
     },
   },
-  phieuThuCongNos: { orderBy: { createdAt: 'asc' } },
+  doiTrus: {
+    orderBy: { createdAt: 'asc' },
+    include: {
+      phieuThuCongNo: {
+        select: {
+          id: true,
+          maPhieuThuCongNo: true,
+          ngayThanhToan: true,
+          huyAt: true,
+        },
+      },
+    },
+  },
+  traLaiHangBans: {
+    where: { trangThai: 'da_nhap_kho' },
+    select: {
+      chiTiets: {
+        select: { soLuong: true, donGia: true, tienChietKhau: true },
+      },
+    },
+  },
 } as const satisfies Prisma.PhieuXuatHangInclude;
 
 export type PhieuXuatListRow = Prisma.PhieuXuatHangGetPayload<{
@@ -74,11 +81,7 @@ const dateOrNull = (value: Date | null) =>
 function toListItem(
   row: PhieuXuatListRow | PhieuXuatDetailRow,
 ): PhieuXuatListItemDto {
-  const totals = computeNetTotals(row.chiTietPhieuXuatHangs);
-  const tongTien = totals.tongThanhToan;
-  const daThu = sumMoney(
-    row.phieuThuCongNos.filter((t) => !t.huyAt).map((t) => t.soTien),
-  );
+  const debt = computeDebt(row);
   const issued = row.trangThai === 'da_xuat_kho' || row.trangThai === 'da_giao';
   return {
     id: row.id,
@@ -88,13 +91,18 @@ function toListItem(
     ngayGiaoHang: dateOrNull(row.ngayGiaoHang),
     ngayXuatKho: dateOrNull(row.ngayXuatKho),
     soDong: row.chiTietPhieuXuatHangs.length,
-    tongTien: moneyString(tongTien),
-    tongTienHang: moneyString(totals.tongTienHang),
-    tienChietKhau: moneyString(totals.tienChietKhau),
-    tienThueGtgt: moneyString(totals.tienThueGtgt),
-    daThu: moneyString(daThu),
-    conNo: moneyString(issued ? tongTien.minus(daThu) : ZERO),
-    trangThaiThu: receivableStatus(row.trangThai, tongTien, daThu),
+    tongTien: moneyString(debt.tongTien),
+    tongTienHang: moneyString(debt.tongTienHang),
+    tienChietKhau: moneyString(debt.tienChietKhau),
+    tienThueGtgt: moneyString(debt.tienThueGtgt),
+    daThu: moneyString(debt.daThu),
+    giaTriTraLai: moneyString(debt.giaTriTraLai),
+    conNo: moneyString(issued ? debt.conNo : ZERO),
+    trangThaiThu: receivableStatus(
+      row.trangThai,
+      debt.tongTien,
+      debt.daThu.plus(debt.giaTriTraLai),
+    ),
     createdBy: row.createdBy,
     createdAt: row.createdAt,
   };
@@ -169,12 +177,13 @@ export function toPhieuXuatResponse(
     huyBoi: row.huyBoi,
     lyDoHuy: row.lyDoHuy,
     chiTiet,
-    thuTien: row.phieuThuCongNos.map((t) => ({
-      id: t.id,
-      maPhieuThuCongNo: t.maPhieuThuCongNo,
-      soTien: moneyString(t.soTien),
-      ngayThanhToan: formatDateOnly(t.ngayThanhToan),
-      daHuy: t.huyAt !== null,
+    // One entry per application of a receipt to this order.
+    thuTien: row.doiTrus.map((d) => ({
+      id: d.phieuThuCongNo.id,
+      maPhieuThuCongNo: d.phieuThuCongNo.maPhieuThuCongNo,
+      soTien: moneyString(d.soTienDoiTru),
+      ngayThanhToan: formatDateOnly(d.phieuThuCongNo.ngayThanhToan),
+      daHuy: d.daBoDoiTru || d.phieuThuCongNo.huyAt !== null,
     })),
     updatedAt: row.updatedAt,
   });

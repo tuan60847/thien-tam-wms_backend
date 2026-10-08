@@ -275,6 +275,11 @@ export class PhieuXuatListItemDto {
   @ApiProperty({ example: '0.00' }) tienChietKhau!: string;
   @ApiProperty({ example: '0.00' }) tienThueGtgt!: string;
   @ApiProperty({ example: '0.00' }) daThu!: string;
+  @ApiProperty({
+    example: '0.00',
+    description: 'Giá trị hàng khách đã trả lại',
+  })
+  giaTriTraLai!: string;
   @ApiProperty({ example: '1000000.00' }) conNo!: string;
   @ApiProperty({ enum: TRANG_THAI_THU, nullable: true })
   trangThaiThu!: string | null;

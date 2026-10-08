@@ -65,6 +65,8 @@ function setup(
     conNo: new Prisma.Decimal(options.conNo ?? '1000000'),
   }));
   const record = vi.fn().mockResolvedValue({});
+  const apply = vi.fn(async () => undefined);
+  const removeAllOfReceipt = vi.fn(async () => undefined);
   const service = new PhieuThuCongNoService(
     prisma,
     { next: vi.fn(async () => 'PT2610060001') } as never,
@@ -75,17 +77,30 @@ function setup(
     } as never,
     { getReceivableSummary } as never,
     { assertUsable: vi.fn() } as never,
+    { apply, removeAllOfReceipt } as never,
     { setContext: vi.fn(), info: vi.fn() } as never,
   );
   vi.spyOn(service, 'findOne').mockResolvedValue({ id: 'pt1' } as never);
-  return { service, tx, getReceivableSummary, record };
+  return {
+    service,
+    tx,
+    getReceivableSummary,
+    record,
+    apply,
+    removeAllOfReceipt,
+  };
 }
 
 describe('PhieuThuCongNoService', () => {
   describe('create', () => {
-    it('thu một phần: sinh mã PT, lưu người lập và phương thức', async () => {
-      const { service, tx } = setup();
+    it('thu một phần: sinh mã PT, lưu người lập và phương thức, áp toàn bộ vào phiếu xuất', async () => {
+      const { service, tx, apply } = setup();
       await service.create(dto, actor);
+      expect(apply).toHaveBeenCalledWith(
+        expect.objectContaining({ phieuXuatHangId: 'p1' }),
+        actor,
+        tx,
+      );
       expect(tx.phieuThuCongNo.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           maPhieuThuCongNo: 'PT2610060001',
@@ -200,10 +215,11 @@ describe('PhieuThuCongNoService', () => {
           tienThueGtgt: new Prisma.Decimal(0),
         },
       ],
-      phieuThuCongNos: receipts.map((r) => ({
-        soTien: new Prisma.Decimal(r.soTien),
-        huyAt: r.huy ? new Date() : null,
+      doiTrus: receipts.map((r) => ({
+        soTienDoiTru: new Prisma.Decimal(r.soTien),
+        daBoDoiTru: r.huy,
       })),
+      traLaiHangBans: [],
     });
     const orders = [
       order('a', '2026-08-01', '1000', [

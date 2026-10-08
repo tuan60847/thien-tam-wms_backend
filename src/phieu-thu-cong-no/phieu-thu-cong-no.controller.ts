@@ -19,6 +19,7 @@ import type { PagedResponse } from '../common/pagination/paginate.js';
 import {
   CongNoKhachQueryDto,
   CreatePhieuThuDto,
+  CreateThuGopDto,
   QueryPhieuThuDto,
   type CongNoKhachResponseDto,
   type PhieuThuResponseDto,
@@ -57,6 +58,18 @@ export class PhieuThuCongNoController {
     @CurrentUser() actor: AuthenticatedUser,
   ): Promise<PhieuThuResponseDto> {
     return this.service.create(dto, actor);
+  }
+
+  @Post('thu-gop')
+  @Roles(ROLE.ADMIN, ROLE.KE_TOAN)
+  @ApiOperation({
+    summary: 'Thu gộp: một phiếu thu cho nhiều phiếu xuất của một khách',
+  })
+  createThuGop(
+    @Body() dto: CreateThuGopDto,
+    @CurrentUser() actor: AuthenticatedUser,
+  ): Promise<PhieuThuResponseDto> {
+    return this.service.createThuGop(dto, actor);
   }
 
   @Post(':id/huy')

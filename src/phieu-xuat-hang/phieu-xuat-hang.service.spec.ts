@@ -41,6 +41,7 @@ function setup(
     state?: string | null;
     lines?: Line[];
     receipts?: number;
+    returns?: number;
     issueError?: unknown; // thrown by assertIssuable
     customerError?: unknown;
   } = {},
@@ -64,7 +65,8 @@ function setup(
       })),
       update: vi.fn(async () => ({})),
     },
-    phieuThuCongNo: { count: vi.fn(async () => options.receipts ?? 0) },
+    doiTruChungTu: { count: vi.fn(async () => options.receipts ?? 0) },
+    traLaiHangBan: { count: vi.fn(async () => options.returns ?? 0) },
     chiTietPhieuXuatHang: { findMany: vi.fn(async () => lines) },
     $queryRaw: vi.fn(async () => (state ? [{ trang_thai: state }] : [])),
   };
@@ -296,6 +298,16 @@ describe('PhieuXuatHangService', () => {
       expect(increase).not.toHaveBeenCalled();
     });
 
+    it('đã có phiếu trả lại hàng → CANNOT_REVERSE', async () => {
+      const { service, increase } = setup({ state: 'da_xuat_kho', returns: 1 });
+      await expect(
+        service.cancel('p1', { lyDo: 'x' }, admin),
+      ).rejects.toMatchObject({
+        code: 'PHIEU_XUAT_CANNOT_REVERSE',
+      });
+      expect(increase).not.toHaveBeenCalled();
+    });
+
     it('đã giao hoặc đã hủy → INVALID_STATE; không tồn tại → NOT_FOUND', async () => {
       for (const state of ['da_giao', 'da_huy']) {
         await expect(
@@ -323,40 +335,54 @@ describe('PhieuXuatHangService', () => {
   });
 
   describe('getReceivableSummary', () => {
-    it('tổng = hàng − chiết khấu + thuế; đã thu (chỉ phiếu thu hiệu lực); còn nợ', async () => {
+    const D = (v: string) => new Prisma.Decimal(v);
+    const clientWith = (row: unknown) => ({
+      phieuXuatHang: { findUnique: vi.fn(async () => row) },
+    });
+    const lines = [
+      {
+        soLuong: 2,
+        donGia: D('125000'),
+        tienChietKhau: D('25000'),
+        tienThueGtgt: D('18000'),
+      },
+      {
+        soLuong: 1,
+        donGia: D('50000'),
+        tienChietKhau: D('0'),
+        tienThueGtgt: D('0'),
+      },
+    ];
+
+    it('tổng = hàng − chiết khấu + thuế; trừ khoản đối trừ còn hiệu lực và hàng trả lại', async () => {
       const { service } = setup();
-      const client = {
-        chiTietPhieuXuatHang: {
-          findMany: vi.fn(async () => [
-            {
-              soLuong: 2,
-              donGia: new Prisma.Decimal('125000'),
-              tienChietKhau: new Prisma.Decimal('25000'),
-              tienThueGtgt: new Prisma.Decimal('18000'),
-            },
-            {
-              soLuong: 1,
-              donGia: new Prisma.Decimal('50000'),
-              tienChietKhau: new Prisma.Decimal('0'),
-              tienThueGtgt: new Prisma.Decimal('0'),
-            },
-          ]),
-        },
-        phieuThuCongNo: {
-          aggregate: vi.fn(async () => ({
-            _sum: { soTien: new Prisma.Decimal('100000') },
-          })),
-        },
-      };
+      const client = clientWith({
+        chiTietPhieuXuatHangs: lines,
+        doiTrus: [
+          { soTienDoiTru: D('100000'), daBoDoiTru: false },
+          { soTienDoiTru: D('50000'), daBoDoiTru: true },
+        ],
+        traLaiHangBans: [
+          {
+            chiTiets: [
+              { soLuong: 1, donGia: D('20000'), tienChietKhau: D('0') },
+            ],
+          },
+        ],
+      });
       const result = await service.getReceivableSummary('p1', client as never);
       expect(
-        [result.tongTien, result.daThu, result.conNo].map((v) => v.toFixed(2)),
-      ).toEqual(['293000.00', '100000.00', '193000.00']);
-      expect(client.phieuThuCongNo.aggregate).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { phieuXuatHangId: 'p1', huyAt: null },
-        }),
-      );
+        [result.tongTien, result.daThu, result.giaTriTraLai, result.conNo].map(
+          (v) => v.toFixed(2),
+        ),
+      ).toEqual(['293000.00', '100000.00', '20000.00', '173000.00']);
+    });
+
+    it('phiếu không tồn tại → PHIEU_XUAT_NOT_FOUND', async () => {
+      const { service } = setup();
+      await expect(
+        service.getReceivableSummary('x', clientWith(null) as never),
+      ).rejects.toMatchObject({ code: 'PHIEU_XUAT_NOT_FOUND' });
     });
   });
 
