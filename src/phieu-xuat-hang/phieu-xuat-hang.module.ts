@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { DieuKhoanThanhToanModule } from '../dieu-khoan-thanh-toan/dieu-khoan-thanh-toan.module.js';
+import { NhanVienKinhDoanhModule } from '../nhan-vien-kinh-doanh/nhan-vien-kinh-doanh.module.js';
 import { HangHoaModule } from '../hang-hoa/hang-hoa.module.js';
 import { KhachHangModule } from '../khach-hang/khach-hang.module.js';
 import { KhoViTriModule } from '../kho-vi-tri/kho-vi-tri.module.js';
@@ -18,6 +20,8 @@ import { PhieuXuatHangService } from './phieu-xuat-hang.service.js';
     KhoViTriModule,
     TyLeQuyDoiModule,
     TonKhoModule,
+    NhanVienKinhDoanhModule,
+    DieuKhoanThanhToanModule,
   ],
   controllers: [PhieuXuatHangController],
   providers: [PhieuXuatHangService],

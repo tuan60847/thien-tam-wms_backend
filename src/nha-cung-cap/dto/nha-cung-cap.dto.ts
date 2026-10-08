@@ -6,12 +6,19 @@ import {
   IsIn,
   IsNotEmpty,
   IsOptional,
+  IsEmail,
   IsString,
+  IsUUID,
   MaxLength,
   ValidateIf,
 } from 'class-validator';
+import {
+  DoiTacChungDto,
+  DoiTacChungResponseDto,
+} from '../../common/doi-tac/doi-tac-chung.dto.js';
 import { PaginationQueryDto } from '../../common/pagination/pagination-query.dto.js';
-import { ToBoolean, Trim } from '../../common/transformers.js';
+import { IsVnTaxCode } from '../../common/validators/is-vn-tax-code.js';
+import { LowerTrim, ToBoolean, Trim } from '../../common/transformers.js';
 import { IsDateOnly } from '../../common/validators/is-date-only.js';
 import {
   IsVnPhone,
@@ -26,7 +33,7 @@ export const LICENSE_STATUS_VALUES = [
 ] as const;
 type LicenseStatusValue = (typeof LICENSE_STATUS_VALUES)[number];
 
-export class CreateNhaCungCapDto {
+export class CreateNhaCungCapDto extends DoiTacChungDto {
   @ApiProperty({ example: 'Công ty Dược Hậu Giang' })
   @Trim()
   @IsString()
@@ -114,6 +121,24 @@ export class CreateNhaCungCapDto {
   @IsOptional()
   @IsDateOnly()
   ngayHetHanGCNDuoc?: string | null;
+
+  @ApiPropertyOptional({ example: '0312345678', nullable: true })
+  @IsOptional()
+  @Trim()
+  @IsVnTaxCode()
+  maSoThue?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @LowerTrim()
+  @IsEmail()
+  @MaxLength(150)
+  email?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @IsUUID()
+  nhanVienMuaHangId?: string | null;
 }
 
 // maNCC and trangThaiXacMinh are not updatable here; verification has its own endpoint.
@@ -165,7 +190,7 @@ export class NguoiXacMinhDto {
   @ApiProperty() hoTen!: string;
 }
 
-export class NhaCungCapResponseDto {
+export class NhaCungCapResponseDto extends DoiTacChungResponseDto {
   @ApiProperty() id!: string;
   @ApiProperty({ example: 'NCC0001' }) maNCC!: string;
   @ApiProperty() tenNCC!: string;
@@ -195,6 +220,10 @@ export class NhaCungCapResponseDto {
   @ApiProperty({ nullable: true, type: String }) ngayCapGCNDuoc!: string | null;
   @ApiProperty({ nullable: true, type: String }) noiCapGCNDuoc!: string | null;
   @ApiProperty({ nullable: true, type: String }) ngayHetHanGCNDuoc!:
+    string | null;
+  @ApiProperty({ nullable: true, type: String }) maSoThue!: string | null;
+  @ApiProperty({ nullable: true, type: String }) email!: string | null;
+  @ApiProperty({ nullable: true, type: String }) nhanVienMuaHangId!:
     string | null;
   @ApiProperty() createdAt!: Date;
   @ApiProperty() updatedAt!: Date;

@@ -1,7 +1,7 @@
 import type { Prisma } from '@prisma/client';
 import { formatDateOnly } from '../common/clock/vn-date.js';
 import {
-  computeTotals,
+  computeNetTotals,
   lineAmount,
   moneyString,
   sumMoney,
@@ -16,12 +16,22 @@ import type {
 import { receivableStatus } from './phieu-xuat-hang.rules.js';
 
 const userSelect = { select: { id: true, maNV: true, hoTen: true } } as const;
+const userSelectKd = {
+  select: { id: true, maNV: true, hoTen: true },
+} as const;
 const khachSelect = { select: { id: true, maKH: true, tenKH: true } } as const;
 
 export const phieuXuatListInclude = {
   khachHang: khachSelect,
   createdBy: userSelect,
-  chiTietPhieuXuatHangs: { select: { soLuong: true, donGia: true } },
+  chiTietPhieuXuatHangs: {
+    select: {
+      soLuong: true,
+      donGia: true,
+      tienChietKhau: true,
+      tienThueGtgt: true,
+    },
+  },
   phieuThuCongNos: { select: { soTien: true, huyAt: true } },
 } as const satisfies Prisma.PhieuXuatHangInclude;
 
@@ -30,6 +40,10 @@ export const phieuXuatDetailInclude = {
   createdBy: userSelect,
   xuatKhoBoi: userSelect,
   huyBoi: userSelect,
+  nhanVienBanHang: userSelectKd,
+  dieuKhoanThanhToan: {
+    select: { id: true, ma: true, ten: true, soNgayDuocNo: true },
+  },
   phuongTienVanChuyen: {
     select: { id: true, bienSo: true, isXeLanh: true },
   },
@@ -60,7 +74,8 @@ const dateOrNull = (value: Date | null) =>
 function toListItem(
   row: PhieuXuatListRow | PhieuXuatDetailRow,
 ): PhieuXuatListItemDto {
-  const tongTien = computeTotals(row.chiTietPhieuXuatHangs);
+  const totals = computeNetTotals(row.chiTietPhieuXuatHangs);
+  const tongTien = totals.tongThanhToan;
   const daThu = sumMoney(
     row.phieuThuCongNos.filter((t) => !t.huyAt).map((t) => t.soTien),
   );
@@ -74,6 +89,9 @@ function toListItem(
     ngayXuatKho: dateOrNull(row.ngayXuatKho),
     soDong: row.chiTietPhieuXuatHangs.length,
     tongTien: moneyString(tongTien),
+    tongTienHang: moneyString(totals.tongTienHang),
+    tienChietKhau: moneyString(totals.tienChietKhau),
+    tienThueGtgt: moneyString(totals.tienThueGtgt),
     daThu: moneyString(daThu),
     conNo: moneyString(issued ? tongTien.minus(daThu) : ZERO),
     trangThaiThu: receivableStatus(row.trangThai, tongTien, daThu),
@@ -115,6 +133,11 @@ export function toPhieuXuatResponse(
       soLuongCoBan: line.soLuongCoBan,
       donGia: moneyString(line.donGia),
       thanhTien: moneyString(lineAmount(line)),
+      laHangKhuyenMai: line.laHangKhuyenMai,
+      tyLeChietKhau: moneyString(line.tyLeChietKhau),
+      tienChietKhau: moneyString(line.tienChietKhau),
+      thueSuatGtgt: moneyString(line.thueSuatGtgt),
+      tienThueGtgt: moneyString(line.tienThueGtgt),
       canhBao: outOfFefo.has(line.id) ? ['KHONG_THEO_FEFO'] : [],
     }),
   );
@@ -123,6 +146,24 @@ export function toPhieuXuatResponse(
     ghiChu: row.ghiChu,
     phuongTienVanChuyen: row.phuongTienVanChuyen,
     ngayGiaoThucTe: dateOrNull(row.ngayGiaoThucTe),
+    hinhThucThanhToan: row.hinhThucThanhToan,
+    tinhTrangNo: row.tinhTrangNo,
+    soNgayDuocNo: row.soNgayDuocNo,
+    hanThanhToan: dateOrNull(row.hanThanhToan),
+    thamChieu: row.thamChieu,
+    lapKemHoaDon: row.lapKemHoaDon,
+    daLapHoaDon: row.daLapHoaDon,
+    dieuKhoanKhac: row.dieuKhoanKhac,
+    tenMatHangChung: row.tenMatHangChung,
+    nguoiLienHe: row.nguoiLienHe,
+    khachSnapshot: {
+      ten: row.khachTenSnapshot,
+      maSoThue: row.khachMaSoThueSnapshot,
+      diaChi: row.khachDiaChiSnapshot,
+    },
+    nhanVienBanHang: row.nhanVienBanHang,
+    dieuKhoanThanhToan: row.dieuKhoanThanhToan,
+    baoGiaId: row.baoGiaId,
     xuatKhoBoi: row.xuatKhoBoi,
     huyAt: row.huyAt,
     huyBoi: row.huyBoi,

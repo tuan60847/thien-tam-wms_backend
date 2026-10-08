@@ -3,12 +3,14 @@ import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsEnum,
   IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   Max,
   MaxLength,
   Min,
@@ -34,6 +36,7 @@ export const TRANG_THAI_THU = [
 ] as const;
 
 export const MAX_LINES = 200;
+const PERCENT = /^(100(\.0{1,2})?|\d{1,2}(\.\d{1,2})?)$/;
 const INT_MAX = 2_147_483_647;
 
 export class ChiTietXuatDto {
@@ -56,6 +59,29 @@ export class ChiTietXuatDto {
   @ApiProperty({ example: '125000.00', description: 'Theo donViTinh của dòng' })
   @IsMoney()
   donGia!: string;
+
+  @ApiPropertyOptional({
+    description: 'Hàng khuyến mại: không kiểm giá tối thiểu',
+  })
+  @IsOptional()
+  @IsBoolean()
+  laHangKhuyenMai?: boolean;
+
+  @ApiPropertyOptional({
+    example: '5.00',
+    description: 'Tỷ lệ chiết khấu (%), 0 đến 100',
+  })
+  @IsOptional()
+  @Matches(PERCENT, { message: 'Tỷ lệ chiết khấu phải từ 0 đến 100' })
+  tyLeChietKhau?: string;
+
+  @ApiPropertyOptional({
+    example: '8.00',
+    description: 'Thuế suất GTGT (%); mặc định lấy từ hàng hóa',
+  })
+  @IsOptional()
+  @Matches(PERCENT, { message: 'Thuế suất phải từ 0 đến 100' })
+  thueSuatGtgt?: string;
 }
 
 export class CreatePhieuXuatDto {
@@ -87,6 +113,81 @@ export class CreatePhieuXuatDto {
   @IsString()
   @MaxLength(500)
   ghiChu?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Mặc định lấy từ khách hàng',
+  })
+  @IsOptional()
+  @IsUUID()
+  nhanVienBanHangId?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Mặc định lấy từ khách hàng',
+  })
+  @IsOptional()
+  @IsUUID()
+  dieuKhoanThanhToanId?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Số ngày được nợ; mặc định theo điều khoản hoặc khách hàng',
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(3650)
+  soNgayDuocNo?: number | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Mặc định = ngày xuất kho + số ngày được nợ',
+  })
+  @IsOptional()
+  @IsDateOnly()
+  hanThanhToan?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @Trim()
+  @IsString()
+  @MaxLength(255)
+  thamChieu?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  lapKemHoaDon?: boolean;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @Trim()
+  @IsString()
+  @MaxLength(1000)
+  dieuKhoanKhac?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @Trim()
+  @IsString()
+  @MaxLength(255)
+  tenMatHangChung?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Mặc định lấy người liên hệ của khách',
+  })
+  @IsOptional()
+  @Trim()
+  @IsString()
+  @MaxLength(200)
+  nguoiLienHe?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @IsUUID()
+  baoGiaId?: string | null;
 
   @ApiPropertyOptional({ type: [ChiTietXuatDto] })
   @IsOptional()
@@ -165,7 +266,14 @@ export class PhieuXuatListItemDto {
   @ApiProperty({ nullable: true }) ngayGiaoHang!: string | null;
   @ApiProperty({ nullable: true }) ngayXuatKho!: string | null;
   @ApiProperty() soDong!: number;
-  @ApiProperty({ example: '1000000.00' }) tongTien!: string;
+  @ApiProperty({
+    example: '1000000.00',
+    description: 'Tổng thanh toán = tiền hàng − chiết khấu + thuế GTGT',
+  })
+  tongTien!: string;
+  @ApiProperty({ example: '1000000.00' }) tongTienHang!: string;
+  @ApiProperty({ example: '0.00' }) tienChietKhau!: string;
+  @ApiProperty({ example: '0.00' }) tienThueGtgt!: string;
   @ApiProperty({ example: '0.00' }) daThu!: string;
   @ApiProperty({ example: '1000000.00' }) conNo!: string;
   @ApiProperty({ enum: TRANG_THAI_THU, nullable: true })
@@ -195,7 +303,16 @@ export class ChiTietXuatResponseDto {
   @ApiProperty() soLuong!: number;
   @ApiProperty() soLuongCoBan!: number;
   @ApiProperty({ example: '125000.00' }) donGia!: string;
-  @ApiProperty({ example: '375000.00' }) thanhTien!: string;
+  @ApiProperty({
+    example: '375000.00',
+    description: 'Số lượng × đơn giá (chưa chiết khấu, chưa thuế)',
+  })
+  thanhTien!: string;
+  @ApiProperty() laHangKhuyenMai!: boolean;
+  @ApiProperty({ example: '0.00' }) tyLeChietKhau!: string;
+  @ApiProperty({ example: '0.00' }) tienChietKhau!: string;
+  @ApiProperty({ example: '0.00' }) thueSuatGtgt!: string;
+  @ApiProperty({ example: '0.00' }) tienThueGtgt!: string;
   @ApiProperty({ type: [String], description: "'KHONG_THEO_FEFO'" })
   canhBao!: string[];
 }
@@ -217,6 +334,40 @@ export class PhieuXuatResponseDto extends PhieuXuatListItemDto {
     isXeLanh: boolean;
   } | null;
   @ApiProperty({ nullable: true }) ngayGiaoThucTe!: string | null;
+  @ApiProperty({ enum: ['chua_thu_tien', 'thu_tien_ngay'] })
+  hinhThucThanhToan!: string;
+  @ApiProperty({ enum: ['no_binh_thuong', 'no_kho_doi', 'no_khong_the_doi'] })
+  tinhTrangNo!: string;
+  @ApiProperty({ nullable: true, type: Number }) soNgayDuocNo!: number | null;
+  @ApiProperty({ nullable: true, example: '2026-11-06' }) hanThanhToan!:
+    string | null;
+  @ApiProperty({ nullable: true }) thamChieu!: string | null;
+  @ApiProperty() lapKemHoaDon!: boolean;
+  @ApiProperty() daLapHoaDon!: boolean;
+  @ApiProperty({ nullable: true }) dieuKhoanKhac!: string | null;
+  @ApiProperty({ nullable: true }) tenMatHangChung!: string | null;
+  @ApiProperty({ nullable: true }) nguoiLienHe!: string | null;
+  @ApiProperty({
+    nullable: true,
+    description: 'Thông tin khách chụp lại lúc lập phiếu',
+  })
+  khachSnapshot!: {
+    ten: string | null;
+    maSoThue: string | null;
+    diaChi: string | null;
+  };
+  @ApiProperty({ nullable: true }) nhanVienBanHang!: {
+    id: string;
+    maNV: string;
+    hoTen: string;
+  } | null;
+  @ApiProperty({ nullable: true }) dieuKhoanThanhToan!: {
+    id: string;
+    ma: string;
+    ten: string;
+    soNgayDuocNo: number;
+  } | null;
+  @ApiProperty({ nullable: true, type: String }) baoGiaId!: string | null;
   @ApiProperty({ type: PhieuXuatUserDto, nullable: true })
   xuatKhoBoi!: PhieuXuatUserDto | null;
   @ApiProperty({ nullable: true }) huyAt!: Date | null;

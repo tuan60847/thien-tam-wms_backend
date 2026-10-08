@@ -1,5 +1,6 @@
 import type { KhachHang } from '@prisma/client';
 import { formatDateOnly } from '../common/clock/vn-date.js';
+import { toChungResponse } from '../common/doi-tac/doi-tac-chung.js';
 import { computeLicenseStatus } from '../common/license-status.js';
 import type { KhachHangResponseDto } from './dto/khach-hang.dto.js';
 
@@ -11,6 +12,7 @@ export function toKhachHangResponse(
   today: Date,
 ): KhachHangResponseDto {
   return {
+    ...toChungResponse(row),
     id: row.id,
     maKH: row.maKH,
     tenKH: row.tenKH,
@@ -25,6 +27,22 @@ export function toKhachHangResponse(
     ngayCapGPKD: dateOrNull(row.ngayCapGPKD),
     ngayHetHanGPKD: dateOrNull(row.ngayHetHanGPKD),
     giayPhep: computeLicenseStatus(row.ngayHetHanGPKD, today),
+    xungHo: row.xungHo,
+    dienGiai: row.dienGiai,
+    soHoChieu: row.soHoChieu,
+    ngayCap: dateOrNull(row.ngayCap),
+    noiCap: row.noiCap,
+    lienHeHoTen: row.lienHeHoTen,
+    lienHeChucDanh: row.lienHeChucDanh,
+    lienHeDienThoai: row.lienHeDienThoai,
+    lienHeEmail: row.lienHeEmail,
+    lienHeDiaChi: row.lienHeDiaChi,
+    daiDienTheoPhapLuat: row.daiDienTheoPhapLuat,
+    hoaDonTenNguoiNhan: row.hoaDonTenNguoiNhan,
+    hoaDonDienThoai: row.hoaDonDienThoai,
+    hoaDonDiaChi: row.hoaDonDiaChi,
+    hoaDonEmail: row.hoaDonEmail,
+    nhanVienBanHangId: row.nhanVienBanHangId,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

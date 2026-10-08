@@ -98,7 +98,10 @@ function setup(
       now: () => new Date('2026-10-06T08:00:00Z'),
     } as never,
     {
-      findByIdOrThrow: vi.fn(async () => ({ id: 'kh' })),
+      findByIdOrThrow: vi.fn(async () => ({
+        id: 'kh',
+        soNoToiDa: new Prisma.Decimal(0),
+      })),
       assertCanBuy,
     } as never,
     { assertUsable } as never,
@@ -107,6 +110,8 @@ function setup(
     {} as never,
     {} as never,
     { increase, decrease } as never,
+    { assertUsable: vi.fn() } as never,
+    { findByIdOrThrow: vi.fn() } as never,
     { setContext: vi.fn(), info: vi.fn() } as never,
     { expiryWarningDays: 90 } as never,
   );
@@ -318,13 +323,23 @@ describe('PhieuXuatHangService', () => {
   });
 
   describe('getReceivableSummary', () => {
-    it('tổng, đã thu (chỉ phiếu thu hiệu lực) và còn nợ', async () => {
+    it('tổng = hàng − chiết khấu + thuế; đã thu (chỉ phiếu thu hiệu lực); còn nợ', async () => {
       const { service } = setup();
       const client = {
         chiTietPhieuXuatHang: {
           findMany: vi.fn(async () => [
-            { soLuong: 2, donGia: new Prisma.Decimal('125000') },
-            { soLuong: 1, donGia: new Prisma.Decimal('50000') },
+            {
+              soLuong: 2,
+              donGia: new Prisma.Decimal('125000'),
+              tienChietKhau: new Prisma.Decimal('25000'),
+              tienThueGtgt: new Prisma.Decimal('18000'),
+            },
+            {
+              soLuong: 1,
+              donGia: new Prisma.Decimal('50000'),
+              tienChietKhau: new Prisma.Decimal('0'),
+              tienThueGtgt: new Prisma.Decimal('0'),
+            },
           ]),
         },
         phieuThuCongNo: {
@@ -336,7 +351,7 @@ describe('PhieuXuatHangService', () => {
       const result = await service.getReceivableSummary('p1', client as never);
       expect(
         [result.tongTien, result.daThu, result.conNo].map((v) => v.toFixed(2)),
-      ).toEqual(['300000.00', '100000.00', '200000.00']);
+      ).toEqual(['293000.00', '100000.00', '193000.00']);
       expect(client.phieuThuCongNo.aggregate).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { phieuXuatHangId: 'p1', huyAt: null },

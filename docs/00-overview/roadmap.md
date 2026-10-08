@@ -73,6 +73,10 @@ Phụ thuộc: không. Là điều kiện cho mọi milestone sau.
 
 `phieu-xuat-hang` → `phieu-thu-cong-no`. Phức tạp nhất: FEFO, kiểm tra giấy phép khách, giá tối thiểu, hạn mức công nợ (nếu chốt), hoàn tác khi hủy. Sau milestone này hệ thống chạy được trọn vòng nhập → lưu kho → xuất → thu tiền: **đây là MVP**.
 
+## M8 — Bổ sung theo màn hình MISA (đã triển khai một phần, 2026-10-08)
+
+Schema bổ sung (migration `m8_bo_sung_misa`, chỉ thêm): nhóm đối tác, điều khoản thanh toán, nhân viên kinh doanh, tài khoản ngân hàng, địa điểm giao hàng, báo giá, trả lại hàng bán, đối trừ chứng từ, và các cột mới trên khách hàng, nhà cung cấp, hàng hóa, phiếu xuất, dòng phiếu xuất, phiếu thu. **Đã có API và test:** `nhom-doi-tac`, `dieu-khoan-thanh-toan`, `nhan-vien-kinh-doanh`; các trường mới của khách hàng, nhà cung cấp, hàng hóa; phiếu xuất (mặc định từ khách, ảnh chụp thông tin khách, chiết khấu và thuế theo dòng, tổng = hàng − chiết khấu + thuế, hạn thanh toán, **hạn mức nợ chặn khi lập và khi xuất kho** = câu #44, giá vốn ước tính theo giá nhập); phiếu thu (người nộp, ngày ghi sổ quỹ, nhân viên); công nợ khách (hạn mức thật, hạn thanh toán, số ngày quá hạn). **Chưa có API:** báo giá, trả lại hàng bán, đối trừ chứng từ (thu gộp nhiều phiếu), tài khoản ngân hàng, địa điểm giao hàng, chiết khấu thanh toán trên phiếu thu, đổi `tinhTrangNo`, thu tiền ngay khi lập phiếu.
+
 ## M7 — Báo cáo & file đính kèm (L)
 
 **Tiến độ M7 (2026-10-07):** `tep-dinh-kem` đã xong (lưu file trên đĩa theo `UPLOAD_DIR`, MySQL giữ đường dẫn; migration `m7_tep_dinh_kem`; xem [file-upload.md](../03-cross-cutting/file-upload.md)). `bao-cao` chưa làm.

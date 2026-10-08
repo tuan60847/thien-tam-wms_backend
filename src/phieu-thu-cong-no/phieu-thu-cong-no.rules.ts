@@ -1,4 +1,5 @@
 import type { Prisma } from '@prisma/client';
+import { diffDays } from '../common/clock/vn-date.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { moneyString } from '../common/money.js';
 
@@ -39,4 +40,16 @@ export function ageBucket(days: number): NhomTuoiNo {
   if (days <= 60) return '31-60';
   if (days <= 90) return '61-90';
   return '>90';
+}
+
+// Days past the due date; null when there is no due date or it has not passed yet.
+export function overdueDays(
+  hanThanhToan: Date | null,
+  today: Date,
+): number | null {
+  if (!hanThanhToan) {
+    return null;
+  }
+  const days = diffDays(today, hanThanhToan);
+  return days > 0 ? days : null;
 }

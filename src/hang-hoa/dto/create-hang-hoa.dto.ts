@@ -11,6 +11,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   Max,
   MaxLength,
   Min,
@@ -55,6 +56,23 @@ export class CreateHangHoaDto {
   @IsString()
   @MaxLength(200)
   quyCach?: string | null;
+
+  @ApiPropertyOptional({ example: 'QC-0001', nullable: true })
+  @IsOptional()
+  @Trim()
+  @IsString()
+  @MaxLength(50)
+  maQuyCach?: string | null;
+
+  @ApiPropertyOptional({
+    example: '8.00',
+    description: 'Thuế suất GTGT (%), 0 đến 100, tối đa 2 chữ số thập phân',
+  })
+  @IsOptional()
+  @Matches(/^(100(\.0{1,2})?|\d{1,2}(\.\d{1,2})?)$/, {
+    message: 'Thuế suất phải từ 0 đến 100, tối đa 2 chữ số thập phân',
+  })
+  thueSuatGtgt?: string;
 
   @ApiProperty({
     example: 'viên',

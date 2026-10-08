@@ -13,6 +13,10 @@ import {
   toOrderBy,
   type PagedResponse,
 } from '../common/pagination/paginate.js';
+import { chungData } from '../common/doi-tac/doi-tac-chung.js';
+import { DieuKhoanThanhToanService } from '../dieu-khoan-thanh-toan/dieu-khoan-thanh-toan.service.js';
+import { NhanVienKinhDoanhService } from '../nhan-vien-kinh-doanh/nhan-vien-kinh-doanh.service.js';
+import { NhomDoiTacService } from '../nhom-doi-tac/nhom-doi-tac.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   CreateNhaCungCapDto,
@@ -46,6 +50,9 @@ export class NhaCungCapService {
     private readonly codes: CodeGeneratorService,
     private readonly audit: AuditService,
     private readonly clock: ClockService,
+    private readonly nhom: NhomDoiTacService,
+    private readonly dieuKhoan: DieuKhoanThanhToanService,
+    private readonly nhanVien: NhanVienKinhDoanhService,
   ) {}
 
   findAll(
@@ -106,6 +113,7 @@ export class NhaCungCapService {
     );
 
     const created = await this.prisma.$transaction(async (tx) => {
+      await this.assertReferences(dto, tx);
       const maNCC = await this.codes.next(CODE.NHA_CUNG_CAP, tx);
       return tx.nhaCungCap.create({
         data: {
@@ -125,6 +133,10 @@ export class NhaCungCapService {
           ngayHetHanGPKD: dates.ngayHetHanGPKD ?? null,
           ngayCapGCNDuoc: dates.ngayCapGCNDuoc ?? null,
           ngayHetHanGCNDuoc: dates.ngayHetHanGCNDuoc ?? null,
+          ...chungData(dto),
+          maSoThue: dto.maSoThue ?? null,
+          email: dto.email ?? null,
+          nhanVienMuaHangId: dto.nhanVienMuaHangId ?? null,
           createdById: actor.id,
           updatedById: actor.id,
         },
@@ -146,6 +158,7 @@ export class NhaCungCapService {
       if (!current) {
         throw new AppException('NHA_CUNG_CAP_NOT_FOUND');
       }
+      await this.assertReferences(dto, tx);
       const pick = <K extends keyof typeof dates>(key: K) =>
         dates[key] === undefined ? current[key] : dates[key];
       assertDateOrder(
@@ -185,6 +198,10 @@ export class NhaCungCapService {
           noiCapGCNDuoc: dto.noiCapGCNDuoc,
           ...dates,
           trangThai: dto.trangThai,
+          ...chungData(dto),
+          maSoThue: dto.maSoThue,
+          email: dto.email,
+          nhanVienMuaHangId: dto.nhanVienMuaHangId,
           ...(resetVerification
             ? {
                 trangThaiXacMinh: 'chua_xac_minh' as const,
@@ -290,6 +307,22 @@ export class NhaCungCapService {
       throw new AppException('NHA_CUNG_CAP_NOT_FOUND');
     }
     return row;
+  }
+
+  // Group, payment terms and buyer must exist (and the buyer be active).
+  private async assertReferences(
+    dto: CreateNhaCungCapDto | UpdateNhaCungCapDto,
+    tx: Prisma.TransactionClient,
+  ): Promise<void> {
+    if (dto.nhomDoiTacId) {
+      await this.nhom.assertExists(dto.nhomDoiTacId, tx);
+    }
+    if (dto.dieuKhoanThanhToanId) {
+      await this.dieuKhoan.findByIdOrThrow(dto.dieuKhoanThanhToanId, tx);
+    }
+    if (dto.nhanVienMuaHangId) {
+      await this.nhanVien.assertUsable(dto.nhanVienMuaHangId, tx);
+    }
   }
 
   assertCanSupply(ncc: NhaCungCapFull): void {

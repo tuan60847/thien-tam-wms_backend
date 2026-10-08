@@ -93,7 +93,7 @@ Tổng cộng **102** câu hỏi, gom từ mục 14 của từng module doc và 
 
 ## Khách hàng (`khach-hang`)
 
-44. **Q-KH-1** ⭐: Có kiểm soát **hạn mức công nợ** và/hoặc **số ngày nợ tối đa** theo khách không? (nếu có: thêm P-12, chặn khi vượt, ai được ghi đè?)
+44. **Q-KH-1** ⭐ (đã triển khai mặc định: hạn mức `soNoToiDa` trên khách, 0 = không giới hạn, chặn khi lập và khi xuất kho phiếu xuất, chưa có cơ chế ghi đè; chờ xác nhận nghiệp vụ): Có kiểm soát **hạn mức công nợ** và/hoặc **số ngày nợ tối đa** theo khách không? (nếu có: thêm P-12, chặn khi vượt, ai được ghi đè?)
 45. **Q-KH-2**: Khách chưa khai báo ngày hết hạn GPKD có được mua không? (đề xuất hiện tại: không; có thể đổi thành cảnh báo mềm).
 46. **Q-KH-3**: Khách hàng đã có mã riêng cần giữ khi import (thay vì `KH00001`)?
 47. **Q-KH-4**: Một nhà thuốc có nhiều chi nhánh/địa chỉ giao khác nhau không (cần bảng địa chỉ giao)?

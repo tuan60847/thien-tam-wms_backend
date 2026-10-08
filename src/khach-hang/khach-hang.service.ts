@@ -14,6 +14,10 @@ import {
   toOrderBy,
   type PagedResponse,
 } from '../common/pagination/paginate.js';
+import { chungData } from '../common/doi-tac/doi-tac-chung.js';
+import { DieuKhoanThanhToanService } from '../dieu-khoan-thanh-toan/dieu-khoan-thanh-toan.service.js';
+import { NhanVienKinhDoanhService } from '../nhan-vien-kinh-doanh/nhan-vien-kinh-doanh.service.js';
+import { NhomDoiTacService } from '../nhom-doi-tac/nhom-doi-tac.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   CreateKhachHangDto,
@@ -43,6 +47,9 @@ export class KhachHangService {
     private readonly codes: CodeGeneratorService,
     private readonly audit: AuditService,
     private readonly clock: ClockService,
+    private readonly nhom: NhomDoiTacService,
+    private readonly dieuKhoan: DieuKhoanThanhToanService,
+    private readonly nhanVien: NhanVienKinhDoanhService,
   ) {}
 
   findAll(
@@ -97,6 +104,7 @@ export class KhachHangService {
       if (dto.maSoThue) {
         await this.assertTaxCodeFree(dto.maSoThue, tx);
       }
+      await this.assertReferences(dto, tx);
       const maKH = await this.codes.next(CODE.KHACH_HANG, tx);
       return tx.khachHang.create({
         data: {
@@ -111,6 +119,23 @@ export class KhachHangService {
           soGiayPhepKinhDoanh: dto.soGiayPhepKinhDoanh ?? null,
           ngayCapGPKD: ngayCap ?? null,
           ngayHetHanGPKD: ngayHetHan ?? null,
+          ...chungData(dto),
+          xungHo: dto.xungHo ?? null,
+          dienGiai: dto.dienGiai ?? null,
+          soHoChieu: dto.soHoChieu ?? null,
+          ngayCap: toDate(dto.ngayCap) ?? null,
+          noiCap: dto.noiCap ?? null,
+          lienHeHoTen: dto.lienHeHoTen ?? null,
+          lienHeChucDanh: dto.lienHeChucDanh ?? null,
+          lienHeDienThoai: dto.lienHeDienThoai ?? null,
+          lienHeEmail: dto.lienHeEmail ?? null,
+          lienHeDiaChi: dto.lienHeDiaChi ?? null,
+          daiDienTheoPhapLuat: dto.daiDienTheoPhapLuat ?? null,
+          hoaDonTenNguoiNhan: dto.hoaDonTenNguoiNhan ?? null,
+          hoaDonDienThoai: dto.hoaDonDienThoai ?? null,
+          hoaDonDiaChi: dto.hoaDonDiaChi ?? null,
+          hoaDonEmail: dto.hoaDonEmail ?? null,
+          nhanVienBanHangId: dto.nhanVienBanHangId ?? null,
           createdById: actor.id,
           updatedById: actor.id,
         },
@@ -139,6 +164,7 @@ export class KhachHangService {
       if (dto.maSoThue && dto.maSoThue !== current.maSoThue) {
         await this.assertTaxCodeFree(dto.maSoThue, tx, id);
       }
+      await this.assertReferences(dto, tx);
 
       const row = await tx.khachHang.update({
         where: { id },
@@ -154,6 +180,23 @@ export class KhachHangService {
           ngayCapGPKD: ngayCap,
           ngayHetHanGPKD: ngayHetHan,
           trangThai: dto.trangThai,
+          ...chungData(dto),
+          xungHo: dto.xungHo,
+          dienGiai: dto.dienGiai,
+          soHoChieu: dto.soHoChieu,
+          ngayCap: toDate(dto.ngayCap),
+          noiCap: dto.noiCap,
+          lienHeHoTen: dto.lienHeHoTen,
+          lienHeChucDanh: dto.lienHeChucDanh,
+          lienHeDienThoai: dto.lienHeDienThoai,
+          lienHeEmail: dto.lienHeEmail,
+          lienHeDiaChi: dto.lienHeDiaChi,
+          daiDienTheoPhapLuat: dto.daiDienTheoPhapLuat,
+          hoaDonTenNguoiNhan: dto.hoaDonTenNguoiNhan,
+          hoaDonDienThoai: dto.hoaDonDienThoai,
+          hoaDonDiaChi: dto.hoaDonDiaChi,
+          hoaDonEmail: dto.hoaDonEmail,
+          nhanVienBanHangId: dto.nhanVienBanHangId,
           updatedById: actor.id,
         },
       });
@@ -204,6 +247,22 @@ export class KhachHangService {
       throw new AppException('KHACH_HANG_NOT_FOUND');
     }
     return row;
+  }
+
+  // Group, payment terms and salesperson must exist (and the salesperson be active).
+  private async assertReferences(
+    dto: CreateKhachHangDto | UpdateKhachHangDto,
+    tx: Prisma.TransactionClient,
+  ): Promise<void> {
+    if (dto.nhomDoiTacId) {
+      await this.nhom.assertExists(dto.nhomDoiTacId, tx);
+    }
+    if (dto.dieuKhoanThanhToanId) {
+      await this.dieuKhoan.findByIdOrThrow(dto.dieuKhoanThanhToanId, tx);
+    }
+    if (dto.nhanVienBanHangId) {
+      await this.nhanVien.assertUsable(dto.nhanVienBanHangId, tx);
+    }
   }
 
   assertCanBuy(khachHang: KhachHang): void {

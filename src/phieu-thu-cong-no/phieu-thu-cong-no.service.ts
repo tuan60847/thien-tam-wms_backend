@@ -13,13 +13,14 @@ import { CodeGeneratorService } from '../common/code-generator/code-generator.se
 import { CODE } from '../common/code-generator/code-specs.js';
 import type { HuyPhieuDto } from '../common/dto/huy-phieu.dto.js';
 import { AppException } from '../common/errors/app.exception.js';
-import { computeTotals, moneyString, ZERO } from '../common/money.js';
+import { computeNetTotals, moneyString, ZERO } from '../common/money.js';
 import {
   paginate,
   parseSort,
   toOrderBy,
   type PagedResponse,
 } from '../common/pagination/paginate.js';
+import { NhanVienKinhDoanhService } from '../nhan-vien-kinh-doanh/nhan-vien-kinh-doanh.service.js';
 import { PhieuXuatHangService } from '../phieu-xuat-hang/phieu-xuat-hang.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
@@ -36,6 +37,7 @@ import {
 } from './phieu-thu-cong-no.mapper.js';
 import {
   ageBucket,
+  overdueDays,
   assertAmountWithinDebt,
   assertReceiptDate,
 } from './phieu-thu-cong-no.rules.js';
@@ -50,6 +52,7 @@ export class PhieuThuCongNoService {
     private readonly audit: AuditService,
     private readonly clock: ClockService,
     private readonly phieuXuat: PhieuXuatHangService,
+    private readonly nhanVien: NhanVienKinhDoanhService,
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(PhieuThuCongNoService.name);
@@ -136,8 +139,12 @@ export class PhieuThuCongNoService {
       // Locking read on the order is the first statement: concurrent receipts for the same
       // order run one after another, so "check the debt, then write" is safe.
       const locked = await tx.$queryRaw<
-        { trang_thai: string; ngay_xuat_kho: Date | null }[]
-      >`SELECT trang_thai, ngay_xuat_kho FROM phieu_xuat_hang
+        {
+          trang_thai: string;
+          ngay_xuat_kho: Date | null;
+          nhan_vien_ban_hang_id: string | null;
+        }[]
+      >`SELECT trang_thai, ngay_xuat_kho, nhan_vien_ban_hang_id FROM phieu_xuat_hang
         WHERE id = ${dto.phieuXuatHangId} FOR UPDATE`;
       const order = locked[0];
       if (!order) {
@@ -155,6 +162,9 @@ export class PhieuThuCongNoService {
         tx,
       );
       assertAmountWithinDebt(soTien, conNo);
+      if (dto.nhanVienBanHangId) {
+        await this.nhanVien.assertUsable(dto.nhanVienBanHangId, tx);
+      }
 
       const created = await tx.phieuThuCongNo.create({
         data: {
@@ -163,6 +173,14 @@ export class PhieuThuCongNoService {
           ngayThanhToan,
           phuongThuc: dto.phuongThuc,
           ghiChu: dto.ghiChu ?? null,
+          nguoiNop: dto.nguoiNop ?? null,
+          ngayGhiSoQuy: dto.ngayGhiSoQuy
+            ? parseDateOnly(dto.ngayGhiSoQuy)
+            : null,
+          nhanVienBanHangId:
+            dto.nhanVienBanHangId === undefined
+              ? order.nhan_vien_ban_hang_id
+              : dto.nhanVienBanHangId,
           phieuXuatHangId: dto.phieuXuatHangId,
           createdById: actor.id,
         },
@@ -220,7 +238,7 @@ export class PhieuThuCongNoService {
   ): Promise<CongNoKhachResponseDto> {
     const customer = await this.prisma.khachHang.findUnique({
       where: { id: khachHangId },
-      select: { id: true, maKH: true, tenKH: true },
+      select: { id: true, maKH: true, tenKH: true, soNoToiDa: true },
     });
     if (!customer) {
       throw new AppException('KHACH_HANG_NOT_FOUND');
@@ -235,7 +253,15 @@ export class PhieuThuCongNoService {
         id: true,
         maPhieuXuatHang: true,
         ngayXuatKho: true,
-        chiTietPhieuXuatHangs: { select: { soLuong: true, donGia: true } },
+        hanThanhToan: true,
+        chiTietPhieuXuatHangs: {
+          select: {
+            soLuong: true,
+            donGia: true,
+            tienChietKhau: true,
+            tienThueGtgt: true,
+          },
+        },
         phieuThuCongNos: { select: { soTien: true, huyAt: true } },
       },
     });
@@ -244,7 +270,9 @@ export class PhieuThuCongNoService {
     let daThu = ZERO;
     const phieuConNo: CongNoPhieuXuatDto[] = [];
     for (const order of orders) {
-      const tongTien = computeTotals(order.chiTietPhieuXuatHangs);
+      const tongTien = computeNetTotals(
+        order.chiTietPhieuXuatHangs,
+      ).tongThanhToan;
       const collected = order.phieuThuCongNos
         .filter((t) => !t.huyAt)
         .reduce((sum, t) => sum.plus(t.soTien), ZERO);
@@ -267,16 +295,26 @@ export class PhieuThuCongNoService {
         daThu: moneyString(collected),
         conNo: moneyString(conNo),
         soNgayNo,
+        hanThanhToan: order.hanThanhToan
+          ? formatDateOnly(order.hanThanhToan)
+          : null,
+        soNgayQuaHan: overdueDays(order.hanThanhToan, today),
         nhomTuoiNo: ageBucket(soNgayNo),
       });
     }
+    const conNoTong = tongPhaiThu.minus(daThu);
+    const hasLimit = customer.soNoToiDa.gt(0);
     return {
-      // Credit limits are not implemented yet (open question #44).
-      khachHang: { ...customer, hanMucCongNo: null },
+      khachHang: {
+        id: customer.id,
+        maKH: customer.maKH,
+        tenKH: customer.tenKH,
+        hanMucCongNo: hasLimit ? moneyString(customer.soNoToiDa) : null,
+      },
       tongPhaiThu: moneyString(tongPhaiThu),
       daThu: moneyString(daThu),
-      conNo: moneyString(tongPhaiThu.minus(daThu)),
-      vuotHanMuc: null,
+      conNo: moneyString(conNoTong),
+      vuotHanMuc: hasLimit ? conNoTong.gt(customer.soNoToiDa) : null,
       phieuConNo,
       generatedAt: this.clock.now(),
     };

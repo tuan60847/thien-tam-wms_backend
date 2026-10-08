@@ -1,9 +1,12 @@
-import type { KhachHang } from '@prisma/client';
+import { Prisma, type KhachHang } from '@prisma/client';
 import type { AuditService } from '../audit/audit.service.js';
 import type { AuthenticatedUser } from '../auth/types/authenticated-user.type.js';
 import type { ClockService } from '../common/clock/clock.service.js';
 import type { CodeGeneratorService } from '../common/code-generator/code-generator.service.js';
 import { addDays, parseDateOnly } from '../common/clock/vn-date.js';
+import type { DieuKhoanThanhToanService } from '../dieu-khoan-thanh-toan/dieu-khoan-thanh-toan.service.js';
+import type { NhanVienKinhDoanhService } from '../nhan-vien-kinh-doanh/nhan-vien-kinh-doanh.service.js';
+import type { NhomDoiTacService } from '../nhom-doi-tac/nhom-doi-tac.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import { KhachHangService } from './khach-hang.service.js';
 
@@ -36,7 +39,40 @@ const make = (id: string, over: Partial<KhachHang> = {}): KhachHang => ({
   updatedById: null,
   createdAt: NOW,
   updatedAt: NOW,
-  ...over,
+  // Fields added for the MISA screens: all optional or defaulted.
+  loaiChuThe: 'to_chuc',
+  xungHo: null,
+  dienGiai: null,
+  soCCCD: null,
+  soHoChieu: null,
+  ngayCap: null,
+  noiCap: null,
+  dtCoDinh: null,
+  fax: null,
+  website: null,
+  soNgayDuocNo: null,
+  soNoToiDa: new Prisma.Decimal(0),
+  quocGia: 'Việt Nam',
+  tinhTp: null,
+  quanHuyen: null,
+  xaPhuong: null,
+  lienHeHoTen: null,
+  lienHeChucDanh: null,
+  lienHeDienThoai: null,
+  lienHeEmail: null,
+  lienHeDiaChi: null,
+  daiDienTheoPhapLuat: null,
+  hoaDonTenNguoiNhan: null,
+  hoaDonDienThoai: null,
+  hoaDonDiaChi: null,
+  hoaDonEmail: null,
+  nhomDoiTacId: null,
+  dieuKhoanThanhToanId: null,
+  nhanVienBanHangId: null,
+  // `undefined` means "column default" in Prisma, so it must not override the defaults above.
+  ...Object.fromEntries(
+    Object.entries(over).filter(([, v]) => v !== undefined),
+  ),
 });
 
 function setup(
@@ -105,6 +141,9 @@ function setup(
       { next } as unknown as CodeGeneratorService,
       { record } as unknown as AuditService,
       clock,
+      { assertExists: vi.fn() } as unknown as NhomDoiTacService,
+      { findByIdOrThrow: vi.fn() } as unknown as DieuKhoanThanhToanService,
+      { assertUsable: vi.fn() } as unknown as NhanVienKinhDoanhService,
     ),
     khachHang,
     store,

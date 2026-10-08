@@ -15,6 +15,7 @@ export const CODE = {
   NHAN_VIEN: { prefix: 'NV', dated: false, digits: 4 },
   SAN_PHAM: { prefix: 'SP', dated: false, digits: 5 },
   NHA_CUNG_CAP: { prefix: 'NCC', dated: false, digits: 4 },
+  NHAN_VIEN_KD: { prefix: 'KD', dated: false, digits: 4 },
 } as const satisfies Record<string, CodeSpec>;
 
 // yyMMdd from a YYYY-MM-DD string.

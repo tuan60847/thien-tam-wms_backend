@@ -36,6 +36,26 @@ export class CreatePhieuThuDto {
   @IsString()
   @MaxLength(255)
   ghiChu?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @Trim()
+  @IsString()
+  @MaxLength(200)
+  nguoiNop?: string | null;
+
+  @ApiPropertyOptional({ nullable: true, example: '2026-10-06' })
+  @IsOptional()
+  @IsDateOnly()
+  ngayGhiSoQuy?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Mặc định lấy nhân viên bán hàng của phiếu xuất',
+  })
+  @IsOptional()
+  @IsUUID()
+  nhanVienBanHangId?: string | null;
 }
 
 export class QueryPhieuThuDto extends PaginationQueryDto {
@@ -86,6 +106,13 @@ export class PhieuThuResponseDto {
   @ApiProperty({ example: '2026-10-06' }) ngayThanhToan!: string;
   @ApiProperty({ enum: PHUONG_THUC }) phuongThuc!: string;
   @ApiProperty({ nullable: true }) ghiChu!: string | null;
+  @ApiProperty({ nullable: true }) nguoiNop!: string | null;
+  @ApiProperty({ nullable: true }) ngayGhiSoQuy!: string | null;
+  @ApiProperty({ nullable: true }) nhanVienBanHang!: {
+    id: string;
+    maNV: string;
+    hoTen: string;
+  } | null;
   @ApiProperty({ type: PhieuThuXuatDto }) phieuXuat!: PhieuThuXuatDto;
   @ApiProperty({ nullable: true }) huyAt!: Date | null;
   @ApiProperty({ nullable: true }) huyBoi!: {
@@ -111,6 +138,14 @@ export class CongNoPhieuXuatDto {
   @ApiProperty() daThu!: string;
   @ApiProperty() conNo!: string;
   @ApiProperty() soNgayNo!: number;
+  @ApiProperty({ nullable: true, example: '2026-11-06' }) hanThanhToan!:
+    string | null;
+  @ApiProperty({
+    nullable: true,
+    description:
+      'Số ngày quá hạn thanh toán; null nếu chưa có hạn hoặc chưa quá hạn',
+  })
+  soNgayQuaHan!: number | null;
   @ApiProperty({ enum: ['0-30', '31-60', '61-90', '>90'] }) nhomTuoiNo!: string;
 }
 

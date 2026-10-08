@@ -179,6 +179,22 @@ Tổng số endpoint: **109** (102 trong module nghiệp vụ + 7 hạ tầng).
 | POST | `/api/v1/phieu-thu-cong-no/:id/huy` | JWT | ADMIN, KE_TOAN | Hủy phiếu thu | M6 |
 | GET | `/api/v1/khach-hang/:id/cong-no` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Công nợ phải thu của khách | M6 |
 
+## Danh mục kinh doanh (bổ sung theo MISA)
+
+| Method | Path | Auth | Roles | Mô tả ngắn |
+|---|---|---|---|---|
+| GET | `/api/v1/nhom-doi-tac`, `/:id` | JWT | mọi role | Nhóm khách hàng / nhà cung cấp |
+| POST, PATCH | `/api/v1/nhom-doi-tac`, `/:id` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Tạo, sửa nhóm |
+| DELETE | `/api/v1/nhom-doi-tac/:id` | JWT | ADMIN | Xóa nhóm chưa có thành viên |
+| GET | `/api/v1/dieu-khoan-thanh-toan`, `/:id` | JWT | mọi role | Điều khoản thanh toán (số ngày được nợ) |
+| POST, PATCH | `/api/v1/dieu-khoan-thanh-toan`, `/:id` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Tạo, sửa điều khoản |
+| DELETE | `/api/v1/dieu-khoan-thanh-toan/:id` | JWT | ADMIN | Xóa điều khoản chưa được dùng |
+| GET | `/api/v1/nhan-vien-kinh-doanh`, `/:id` | JWT | mọi role | Nhân viên bán hàng / mua hàng |
+| POST, PATCH | `/api/v1/nhan-vien-kinh-doanh`, `/:id` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Tạo, sửa, ngừng hoạt động |
+| DELETE | `/api/v1/nhan-vien-kinh-doanh/:id` | JWT | ADMIN | Xóa nhân viên chưa phát sinh dữ liệu |
+
+Khách hàng, nhà cung cấp, hàng hóa, phiếu xuất và phiếu thu nhận/trả thêm các trường mới (hạn mức nợ `soNoToiDa`, `soNgayDuocNo`, điều khoản, nhân viên, nhóm, địa lý, liên hệ; chiết khấu và thuế theo dòng phiếu xuất; `hanThanhToan`; `nguoiNop`...). Chưa có API cho: báo giá, trả lại hàng bán, đối trừ chứng từ, tài khoản ngân hàng, địa điểm giao hàng (bảng đã có trong schema).
+
 ## Báo cáo — [bao-cao](../02-modules/bao-cao.md)
 
 | Method | Path | Auth | Roles | Mô tả | MS |

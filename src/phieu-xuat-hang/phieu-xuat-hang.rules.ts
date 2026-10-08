@@ -41,18 +41,21 @@ export function receivableStatus(
   return daThu.gt(0) ? 'thu_mot_phan' : 'chua_thu';
 }
 
-// Lowest allowed unit price for a line, derived from the product's per-price-unit minimum:
-// giaToiThieu × heSo(line unit) ÷ heSo(price unit), rounded half-up to 2 decimals.
-export function minUnitPrice(
-  giaToiThieu: Prisma.Decimal,
+// A product price is stored per "price unit"; the price of a line unit is
+// price × heSo(line unit) ÷ heSo(price unit), rounded half-up to 2 decimals.
+export function convertUnitPrice(
+  price: Prisma.Decimal,
   heSoDonViDong: number,
   heSoDonViGia: number,
 ): Prisma.Decimal {
-  return giaToiThieu
+  return price
     .mul(heSoDonViDong)
     .div(heSoDonViGia)
     .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
 }
+
+// Lowest allowed unit price for a line, from the product's per-price-unit minimum.
+export const minUnitPrice = convertUnitPrice;
 
 export function isBelowMinimum(
   donGia: Prisma.Decimal,

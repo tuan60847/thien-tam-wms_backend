@@ -1,6 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import { formatDateOnly } from '../common/clock/vn-date.js';
-import { computeTotals, moneyString, sumMoney } from '../common/money.js';
+import { computeNetTotals, moneyString, sumMoney } from '../common/money.js';
 import type { PhieuThuResponseDto } from './dto/phieu-thu.dto.js';
 
 const userSelect = { select: { id: true, maNV: true, hoTen: true } } as const;
@@ -8,13 +8,21 @@ const userSelect = { select: { id: true, maNV: true, hoTen: true } } as const;
 export const phieuThuInclude = {
   createdBy: userSelect,
   huyBoi: userSelect,
+  nhanVienBanHang: userSelect,
   phieuXuatHang: {
     select: {
       id: true,
       maPhieuXuatHang: true,
       ngayXuatKho: true,
       khachHang: { select: { id: true, maKH: true, tenKH: true } },
-      chiTietPhieuXuatHangs: { select: { soLuong: true, donGia: true } },
+      chiTietPhieuXuatHangs: {
+        select: {
+          soLuong: true,
+          donGia: true,
+          tienChietKhau: true,
+          tienThueGtgt: true,
+        },
+      },
       phieuThuCongNos: { select: { soTien: true, huyAt: true } },
     },
   },
@@ -26,7 +34,7 @@ export type PhieuThuRow = Prisma.PhieuThuCongNoGetPayload<{
 
 export function toPhieuThuResponse(row: PhieuThuRow): PhieuThuResponseDto {
   const order = row.phieuXuatHang;
-  const tongTien = computeTotals(order.chiTietPhieuXuatHangs);
+  const tongTien = computeNetTotals(order.chiTietPhieuXuatHangs).tongThanhToan;
   const daThu = sumMoney(
     order.phieuThuCongNos.filter((t) => !t.huyAt).map((t) => t.soTien),
   );
@@ -37,6 +45,9 @@ export function toPhieuThuResponse(row: PhieuThuRow): PhieuThuResponseDto {
     ngayThanhToan: formatDateOnly(row.ngayThanhToan),
     phuongThuc: row.phuongThuc,
     ghiChu: row.ghiChu,
+    nguoiNop: row.nguoiNop,
+    ngayGhiSoQuy: row.ngayGhiSoQuy ? formatDateOnly(row.ngayGhiSoQuy) : null,
+    nhanVienBanHang: row.nhanVienBanHang,
     phieuXuat: {
       id: order.id,
       maPhieuXuatHang: order.maPhieuXuatHang,

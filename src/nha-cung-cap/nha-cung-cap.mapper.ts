@@ -1,5 +1,6 @@
 import type { NhaCungCap, Prisma } from '@prisma/client';
 import { formatDateOnly } from '../common/clock/vn-date.js';
+import { toChungResponse } from '../common/doi-tac/doi-tac-chung.js';
 import { computeLicenseStatus } from '../common/license-status.js';
 import type { NhaCungCapResponseDto } from './dto/nha-cung-cap.dto.js';
 
@@ -19,6 +20,7 @@ export function toNhaCungCapResponse(
   today: Date,
 ): NhaCungCapResponseDto {
   return {
+    ...toChungResponse(row),
     id: row.id,
     maNCC: row.maNCC,
     tenNCC: row.tenNCC,
@@ -43,6 +45,9 @@ export function toNhaCungCapResponse(
     ngayCapGCNDuoc: dateOrNull(row.ngayCapGCNDuoc),
     noiCapGCNDuoc: row.noiCapGCNDuoc,
     ngayHetHanGCNDuoc: dateOrNull(row.ngayHetHanGCNDuoc),
+    maSoThue: row.maSoThue,
+    email: row.email,
+    nhanVienMuaHangId: row.nhanVienMuaHangId,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

@@ -37,6 +37,9 @@ export async function resetAndSeed(
 ): Promise<SeededRoles> {
   assertTestDatabase();
   await prisma.tepDinhKem.deleteMany();
+  await prisma.doiTruChungTu.deleteMany();
+  await prisma.chiTietTraLai.deleteMany();
+  await prisma.traLaiHangBan.deleteMany();
   await prisma.nhatKyHeThong.deleteMany();
   await prisma.phieuThuCongNo.deleteMany();
   await prisma.chiTietPhieuXuatHang.deleteMany();
@@ -49,12 +52,19 @@ export async function resetAndSeed(
   await prisma.soLo.deleteMany();
   await prisma.viTri.deleteMany();
   await prisma.kho.deleteMany();
+  await prisma.chiTietBaoGia.deleteMany();
+  await prisma.baoGia.deleteMany();
+  await prisma.diaDiemGiaoHang.deleteMany();
+  await prisma.taiKhoanNganHang.deleteMany();
   await prisma.khachHang.deleteMany();
   await prisma.nhaCungCap.deleteMany();
   await prisma.phuongTienVanChuyen.deleteMany();
   await prisma.tyLeQuyDoi.deleteMany();
   await prisma.hangHoa.deleteMany();
   await prisma.loaiHang.deleteMany();
+  await prisma.nhanVienKinhDoanh.deleteMany();
+  await prisma.dieuKhoanThanhToan.deleteMany();
+  await prisma.nhomDoiTac.deleteMany();
   await prisma.refreshToken.deleteMany();
   await prisma.user.deleteMany();
   await prisma.role.deleteMany();

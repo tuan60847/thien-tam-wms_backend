@@ -120,6 +120,8 @@ export class HangHoaService {
           maSP,
           tenSP: dto.tenSP,
           quyCach: dto.quyCach ?? null,
+          maQuyCach: dto.maQuyCach ?? null,
+          thueSuatGtgt: dto.thueSuatGtgt,
           loaiHangId: dto.loaiHangId,
           donViTinhGia,
           giaNhap: dto.giaNhap ?? ZERO,
@@ -178,6 +180,8 @@ export class HangHoaService {
         data: {
           tenSP: dto.tenSP,
           quyCach: dto.quyCach,
+          maQuyCach: dto.maQuyCach,
+          thueSuatGtgt: dto.thueSuatGtgt,
           loaiHangId: dto.loaiHangId,
           donViTinhGia,
           giaNhap,

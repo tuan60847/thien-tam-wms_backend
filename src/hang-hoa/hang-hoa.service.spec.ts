@@ -26,6 +26,8 @@ interface Stored {
   maSP: string;
   tenSP: string;
   quyCach: string | null;
+  maQuyCach: string | null;
+  thueSuatGtgt: Prisma.Decimal;
   donViTinhGia: string;
   giaNhap: Prisma.Decimal;
   giaHienThi: Prisma.Decimal;
@@ -50,6 +52,8 @@ const product = (over: Partial<Stored> = {}): Stored => ({
   maSP: 'SP00001',
   tenSP: 'Paracetamol',
   quyCach: null,
+  maQuyCach: null,
+  thueSuatGtgt: D('0'),
   donViTinhGia: 'hộp',
   giaNhap: D('90000'),
   giaHienThi: D('125000'),
@@ -65,7 +69,10 @@ const product = (over: Partial<Stored> = {}): Stored => ({
     { id: 'u1', donViTinh: 'viên', soLuongQuyDoi: 1, hangHoaId: 'h1' },
     { id: 'u2', donViTinh: 'hộp', soLuongQuyDoi: 100, hangHoaId: 'h1' },
   ],
-  ...over,
+  // `undefined` means "column default" in Prisma, so it must not override the defaults above.
+  ...Object.fromEntries(
+    Object.entries(over).filter(([, v]) => v !== undefined),
+  ),
 });
 
 function setup(
@@ -101,6 +108,10 @@ function setup(
         giaNhap: D(String(data.giaNhap)),
         giaHienThi: D(String(data.giaHienThi)),
         giaToiThieu: D(String(data.giaToiThieu)),
+        // Column default when the service sends nothing.
+        thueSuatGtgt: D(
+          typeof data.thueSuatGtgt === 'string' ? data.thueSuatGtgt : '0',
+        ),
         id,
         trangThai: true,
         tyLeQuyDois: units.map((u, i) => ({

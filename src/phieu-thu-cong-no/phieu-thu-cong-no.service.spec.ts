@@ -17,7 +17,12 @@ function setup(
     conNo?: string;
     voidCount?: number;
     receiptExists?: boolean;
-    customer?: { id: string; maKH: string; tenKH: string } | null;
+    customer?: {
+      id: string;
+      maKH: string;
+      tenKH: string;
+      soNoToiDa: Prisma.Decimal;
+    } | null;
     orders?: unknown[];
   } = {},
 ) {
@@ -45,7 +50,12 @@ function setup(
     khachHang: {
       findUnique: vi.fn(async () =>
         options.customer === undefined
-          ? { id: 'kh', maKH: 'KH00001', tenKH: 'A' }
+          ? {
+              id: 'kh',
+              maKH: 'KH00001',
+              tenKH: 'A',
+              soNoToiDa: new Prisma.Decimal(0),
+            }
           : options.customer,
       ),
     },
@@ -64,6 +74,7 @@ function setup(
       now: () => new Date('2026-10-06T08:00:00Z'),
     } as never,
     { getReceivableSummary } as never,
+    { assertUsable: vi.fn() } as never,
     { setContext: vi.fn(), info: vi.fn() } as never,
   );
   vi.spyOn(service, 'findOne').mockResolvedValue({ id: 'pt1' } as never);
@@ -175,11 +186,20 @@ describe('PhieuThuCongNoService', () => {
       ngay: string,
       tong: string,
       receipts: { soTien: string; huy: boolean }[],
+      due: string | null = null,
     ) => ({
       id,
       maPhieuXuatHang: id.toUpperCase(),
       ngayXuatKho: new Date(`${ngay}T00:00:00Z`),
-      chiTietPhieuXuatHangs: [{ soLuong: 1, donGia: new Prisma.Decimal(tong) }],
+      hanThanhToan: due ? new Date(`${due}T00:00:00Z`) : null,
+      chiTietPhieuXuatHangs: [
+        {
+          soLuong: 1,
+          donGia: new Prisma.Decimal(tong),
+          tienChietKhau: new Prisma.Decimal(0),
+          tienThueGtgt: new Prisma.Decimal(0),
+        },
+      ],
       phieuThuCongNos: receipts.map((r) => ({
         soTien: new Prisma.Decimal(r.soTien),
         huyAt: r.huy ? new Date() : null,
@@ -209,6 +229,48 @@ describe('PhieuThuCongNoService', () => {
           nhomTuoiNo: '61-90',
         }),
       ]);
+    });
+
+    it('hạn mức: có hạn mức thì trả hanMucCongNo và vuotHanMuc theo công nợ; hạn thanh toán → số ngày quá hạn', async () => {
+      const dueOrders = [
+        order(
+          'a',
+          '2026-08-01',
+          '1000',
+          [{ soTien: '400', huy: false }],
+          '2026-10-01',
+        ),
+        order('b', '2026-10-03', '500', [], '2026-11-01'),
+      ];
+      const over = await setup({
+        orders: dueOrders,
+        customer: {
+          id: 'kh',
+          maKH: 'KH00001',
+          tenKH: 'A',
+          soNoToiDa: new Prisma.Decimal('1000'),
+        },
+      }).service.congNoKhachHang('kh', {});
+      expect(over.khachHang.hanMucCongNo).toBe('1000.00');
+      expect(over.conNo).toBe('1100.00');
+      expect(over.vuotHanMuc).toBe(true);
+      expect(
+        over.phieuConNo.map((p) => [p.phieuXuatId, p.soNgayQuaHan]),
+      ).toEqual([
+        ['a', 5],
+        ['b', null],
+      ]);
+
+      const within = await setup({
+        orders: dueOrders,
+        customer: {
+          id: 'kh',
+          maKH: 'KH00001',
+          tenKH: 'A',
+          soNoToiDa: new Prisma.Decimal('1100'),
+        },
+      }).service.congNoKhachHang('kh', {});
+      expect(within.vuotHanMuc).toBe(false);
     });
 
     it('chiConNo=false giữ cả phiếu đã thu đủ; khách không có → KHACH_HANG_NOT_FOUND', async () => {

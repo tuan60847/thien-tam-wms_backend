@@ -6,8 +6,13 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
 } from 'class-validator';
+import {
+  DoiTacChungDto,
+  DoiTacChungResponseDto,
+} from '../../common/doi-tac/doi-tac-chung.dto.js';
 import { PaginationQueryDto } from '../../common/pagination/pagination-query.dto.js';
 import { LowerTrim, Trim } from '../../common/transformers.js';
 import { IsDateOnly } from '../../common/validators/is-date-only.js';
@@ -25,7 +30,7 @@ export const GIAY_PHEP_VALUES = [
 ] as const;
 export type GiayPhep = (typeof GIAY_PHEP_VALUES)[number];
 
-export class CreateKhachHangDto {
+export class CreateKhachHangDto extends DoiTacChungDto {
   @ApiProperty({ example: 'Nhà thuốc Minh Châu' })
   @Trim()
   @IsString()
@@ -88,6 +93,112 @@ export class CreateKhachHangDto {
   @IsOptional()
   @IsDateOnly()
   ngayHetHanGPKD?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @Trim()
+  @IsString()
+  @MaxLength(20)
+  xungHo?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @Trim()
+  @IsString()
+  @MaxLength(500)
+  dienGiai?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @Trim()
+  @IsString()
+  @MaxLength(30)
+  soHoChieu?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @IsDateOnly()
+  ngayCap?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @Trim()
+  @IsString()
+  @MaxLength(255)
+  noiCap?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @Trim()
+  @IsString()
+  @MaxLength(200)
+  lienHeHoTen?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @Trim()
+  @IsString()
+  @MaxLength(100)
+  lienHeChucDanh?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @NormalizePhone()
+  @IsVnPhone()
+  lienHeDienThoai?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @LowerTrim()
+  @IsEmail()
+  @MaxLength(150)
+  lienHeEmail?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @Trim()
+  @IsString()
+  @MaxLength(500)
+  lienHeDiaChi?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @Trim()
+  @IsString()
+  @MaxLength(200)
+  daiDienTheoPhapLuat?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @Trim()
+  @IsString()
+  @MaxLength(200)
+  hoaDonTenNguoiNhan?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @NormalizePhone()
+  @IsVnPhone()
+  hoaDonDienThoai?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @Trim()
+  @IsString()
+  @MaxLength(500)
+  hoaDonDiaChi?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @LowerTrim()
+  @IsEmail()
+  @MaxLength(150)
+  hoaDonEmail?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  @IsOptional()
+  @IsUUID()
+  nhanVienBanHangId?: string | null;
 }
 
 // maKH is generated and never changes.
@@ -110,7 +221,7 @@ export class QueryKhachHangDto extends PaginationQueryDto {
   giayPhep?: GiayPhep;
 }
 
-export class KhachHangResponseDto {
+export class KhachHangResponseDto extends DoiTacChungResponseDto {
   @ApiProperty() id!: string;
   @ApiProperty({ example: 'KH00001' }) maKH!: string;
   @ApiProperty() tenKH!: string;
@@ -132,6 +243,27 @@ export class KhachHangResponseDto {
     description: 'Tính khi đọc theo ngày hết hạn GPKD',
   })
   giayPhep!: GiayPhep;
+  @ApiProperty({ nullable: true, type: String }) xungHo!: string | null;
+  @ApiProperty({ nullable: true, type: String }) dienGiai!: string | null;
+  @ApiProperty({ nullable: true, type: String }) soHoChieu!: string | null;
+  @ApiProperty({ nullable: true, type: String }) ngayCap!: string | null;
+  @ApiProperty({ nullable: true, type: String }) noiCap!: string | null;
+  @ApiProperty({ nullable: true, type: String }) lienHeHoTen!: string | null;
+  @ApiProperty({ nullable: true, type: String }) lienHeChucDanh!: string | null;
+  @ApiProperty({ nullable: true, type: String }) lienHeDienThoai!:
+    string | null;
+  @ApiProperty({ nullable: true, type: String }) lienHeEmail!: string | null;
+  @ApiProperty({ nullable: true, type: String }) lienHeDiaChi!: string | null;
+  @ApiProperty({ nullable: true, type: String }) daiDienTheoPhapLuat!:
+    string | null;
+  @ApiProperty({ nullable: true, type: String }) hoaDonTenNguoiNhan!:
+    string | null;
+  @ApiProperty({ nullable: true, type: String }) hoaDonDienThoai!:
+    string | null;
+  @ApiProperty({ nullable: true, type: String }) hoaDonDiaChi!: string | null;
+  @ApiProperty({ nullable: true, type: String }) hoaDonEmail!: string | null;
+  @ApiProperty({ nullable: true, type: String }) nhanVienBanHangId!:
+    string | null;
   @ApiProperty() createdAt!: Date;
   @ApiProperty() updatedAt!: Date;
 }

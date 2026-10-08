@@ -38,6 +38,9 @@ export class HangHoaResponseDto extends HangHoaListItemDto {
   @ApiProperty({ nullable: true, type: String }) soDangKy!: string | null;
   @ApiProperty({ nullable: true, type: String }) ghiChu!: string | null;
   @ApiProperty({ type: [HangHoaDonViDto] }) tyLeQuyDoi!: HangHoaDonViDto[];
+  @ApiProperty({ nullable: true, type: String }) maQuyCach!: string | null;
+  @ApiProperty({ example: '8.00', description: 'Thuế suất GTGT (%)' })
+  thueSuatGtgt!: string;
   @ApiProperty() createdAt!: Date;
   @ApiProperty() updatedAt!: Date;
 }

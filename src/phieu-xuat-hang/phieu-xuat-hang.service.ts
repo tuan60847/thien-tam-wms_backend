@@ -1,17 +1,26 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
-import { Prisma, type TrangThaiPhieuXuat } from '@prisma/client';
+import {
+  Prisma,
+  type KhachHang,
+  type TrangThaiPhieuXuat,
+} from '@prisma/client';
 import { PinoLogger } from 'nestjs-pino';
 import { AuditService } from '../audit/audit.service.js';
 import { ROLE } from '../auth/roles.constants.js';
 import type { AuthenticatedUser } from '../auth/types/authenticated-user.type.js';
 import { ClockService } from '../common/clock/clock.service.js';
-import { parseDateOnly } from '../common/clock/vn-date.js';
+import { addDays, parseDateOnly } from '../common/clock/vn-date.js';
 import { CodeGeneratorService } from '../common/code-generator/code-generator.service.js';
 import { CODE, formatLineCode } from '../common/code-generator/code-specs.js';
 import type { HuyPhieuDto } from '../common/dto/huy-phieu.dto.js';
 import { AppException } from '../common/errors/app.exception.js';
-import { computeTotals, moneyString, ZERO } from '../common/money.js';
+import {
+  computeNetTotals,
+  moneyString,
+  percentOf,
+  ZERO,
+} from '../common/money.js';
 import {
   dateRangeFilter,
   paginate,
@@ -20,6 +29,8 @@ import {
   type PagedResponse,
 } from '../common/pagination/paginate.js';
 import { appConfig } from '../config/app.config.js';
+import { DieuKhoanThanhToanService } from '../dieu-khoan-thanh-toan/dieu-khoan-thanh-toan.service.js';
+import { NhanVienKinhDoanhService } from '../nhan-vien-kinh-doanh/nhan-vien-kinh-doanh.service.js';
 import { HangHoaService } from '../hang-hoa/hang-hoa.service.js';
 import { KhachHangService } from '../khach-hang/khach-hang.service.js';
 import { ViTriService } from '../kho-vi-tri/vi-tri.service.js';
@@ -46,6 +57,7 @@ import {
 } from './phieu-xuat-hang.mapper.js';
 import {
   assertTransition,
+  convertUnitPrice,
   isBelowMinimum,
   isOutOfFefo,
   minUnitPrice,
@@ -67,6 +79,13 @@ interface PreparedLine {
   soLuong: number;
   soLuongCoBan: number;
   donGia: Prisma.Decimal;
+  laHangKhuyenMai: boolean;
+  tyLeChietKhau: Prisma.Decimal;
+  tienChietKhau: Prisma.Decimal;
+  thueSuatGtgt: Prisma.Decimal;
+  tienThueGtgt: Prisma.Decimal;
+  donGiaVon: Prisma.Decimal; // estimated from the product's purchase price
+  tienGiaVon: Prisma.Decimal;
 }
 
 type BelowMinLine = {
@@ -94,6 +113,8 @@ export class PhieuXuatHangService {
     private readonly viTri: ViTriService,
     private readonly units: TyLeQuyDoiService,
     private readonly tonKho: TonKhoService,
+    private readonly nhanVien: NhanVienKinhDoanhService,
+    private readonly dieuKhoan: DieuKhoanThanhToanService,
     private readonly logger: PinoLogger,
     @Inject(appConfig.KEY)
     private readonly config: ConfigType<typeof appConfig>,
@@ -197,6 +218,11 @@ export class PhieuXuatHangService {
       this.khachHang.assertCanBuy(customer);
       const prepared = await this.prepareLines(dto.chiTiet ?? [], actor, tx);
       await this.assertVehicle(dto.phuongTienVanChuyenId, prepared.hasCold, tx);
+      await this.assertCreditLimit(
+        customer,
+        computeNetTotals(prepared.lines).tongThanhToan,
+        tx,
+      );
 
       const ma = await this.codes.next(CODE.PHIEU_XUAT, tx);
       const created = await tx.phieuXuatHang.create({
@@ -210,6 +236,7 @@ export class PhieuXuatHangService {
           // Snapshot: later edits of the customer's address must not change this order.
           diaChiGiaoHang: dto.diaChiGiaoHang ?? customer.diaChi,
           ghiChu: dto.ghiChu ?? null,
+          ...(await this.createHeader(dto, customer, tx)),
           createdById: actor.id,
           updatedById: actor.id,
           chiTietPhieuXuatHangs: { create: this.lineData(ma, prepared.lines) },
@@ -252,6 +279,7 @@ export class PhieuXuatHangService {
       } else {
         hasCold = await this.hasColdLines(id, tx);
       }
+      await this.assertCreditLimit(customer, await this.draftTotal(id, tx), tx);
       const phuongTienId =
         dto.phuongTienVanChuyenId === undefined
           ? current.phuongTienVanChuyenId
@@ -271,6 +299,7 @@ export class PhieuXuatHangService {
                 : parseDateOnly(dto.ngayGiaoHang),
           diaChiGiaoHang: dto.diaChiGiaoHang,
           ghiChu: dto.ghiChu,
+          ...(await this.updateHeader(dto, current.khachHangId, customer, tx)),
           updatedById: actor.id,
         },
       });
@@ -335,6 +364,16 @@ export class PhieuXuatHangService {
         lines.some((l) => l.soLo.hangHoa.isCanGiuLanh),
         tx,
       );
+      // This order is already counted as issued (state updated above): +0 extra.
+      await this.assertCreditLimit(customer, ZERO, tx);
+      if (!phieu.hanThanhToan && phieu.soNgayDuocNo) {
+        await tx.phieuXuatHang.update({
+          where: { id },
+          data: {
+            hanThanhToan: addDays(this.clock.today(), phieu.soNgayDuocNo),
+          },
+        });
+      }
 
       // Fixed lock order across concurrent issues avoids deadlocks.
       const ordered = [...lines].sort((a, b) =>
@@ -485,14 +524,19 @@ export class PhieuXuatHangService {
     const [lines, received] = await Promise.all([
       client.chiTietPhieuXuatHang.findMany({
         where: { phieuXuatHangId: id },
-        select: { soLuong: true, donGia: true },
+        select: {
+          soLuong: true,
+          donGia: true,
+          tienChietKhau: true,
+          tienThueGtgt: true,
+        },
       }),
       client.phieuThuCongNo.aggregate({
         where: { phieuXuatHangId: id, huyAt: null },
         _sum: { soTien: true },
       }),
     ]);
-    const tongTien = computeTotals(lines);
+    const tongTien = computeNetTotals(lines).tongThanhToan;
     const daThu = received._sum.soTien ?? ZERO;
     return { tongTien, daThu, conNo: tongTien.minus(daThu) };
   }
@@ -639,7 +683,9 @@ export class PhieuXuatHangService {
         unit.heSoQuyDoi,
         priceUnit?.soLuongQuyDoi ?? 1,
       );
-      if (isBelowMinimum(donGia, minimum)) {
+      // Promotional goods are given away: the minimum price does not apply to them.
+      const laHangKhuyenMai = line.laHangKhuyenMai ?? false;
+      if (!laHangKhuyenMai && isBelowMinimum(donGia, minimum)) {
         // Only managers may sell below the minimum; the message never reveals it.
         if (!this.isManager(actor)) {
           throw new AppException('PHIEU_XUAT_PRICE_BELOW_MIN', {
@@ -669,9 +715,213 @@ export class PhieuXuatHangService {
         soLuong: line.soLuong,
         soLuongCoBan,
         donGia,
+        ...this.moneyColumns(line, donGia, product, unit.heSoQuyDoi),
       });
     }
     return { lines, hasCold, belowMin };
+  }
+
+  // Discount, VAT and estimated cost of one line (all rounded half-up to 2 decimals).
+  private moneyColumns(
+    line: ChiTietXuatDto,
+    donGia: Prisma.Decimal,
+    product: {
+      giaNhap: Prisma.Decimal;
+      thueSuatGtgt: Prisma.Decimal;
+      donViTinhGia: string;
+      tyLeQuyDois: { donViTinh: string; soLuongQuyDoi: number }[];
+    },
+    heSoQuyDoi: number,
+  ) {
+    const gross = donGia.mul(line.soLuong);
+    const tyLeChietKhau = new Prisma.Decimal(line.tyLeChietKhau ?? '0');
+    const tienChietKhau = percentOf(gross, tyLeChietKhau);
+    const thueSuatGtgt = line.thueSuatGtgt
+      ? new Prisma.Decimal(line.thueSuatGtgt)
+      : product.thueSuatGtgt;
+    const priceUnit = product.tyLeQuyDois.find(
+      (u) => u.donViTinh === product.donViTinhGia,
+    );
+    const donGiaVon = convertUnitPrice(
+      product.giaNhap,
+      heSoQuyDoi,
+      priceUnit?.soLuongQuyDoi ?? 1,
+    );
+    return {
+      laHangKhuyenMai: line.laHangKhuyenMai ?? false,
+      tyLeChietKhau,
+      tienChietKhau,
+      thueSuatGtgt,
+      tienThueGtgt: percentOf(gross.minus(tienChietKhau), thueSuatGtgt),
+      donGiaVon,
+      tienGiaVon: donGiaVon.mul(line.soLuong),
+    };
+  }
+
+  // Header fields of a new order; unset ones default from the customer.
+  private async createHeader(
+    dto: CreatePhieuXuatDto,
+    customer: KhachHang,
+    tx: Prisma.TransactionClient,
+  ) {
+    const nhanVienBanHangId =
+      dto.nhanVienBanHangId === undefined
+        ? customer.nhanVienBanHangId
+        : dto.nhanVienBanHangId;
+    if (dto.nhanVienBanHangId) {
+      await this.nhanVien.assertUsable(dto.nhanVienBanHangId, tx);
+    }
+    const dieuKhoanThanhToanId =
+      dto.dieuKhoanThanhToanId === undefined
+        ? customer.dieuKhoanThanhToanId
+        : dto.dieuKhoanThanhToanId;
+    const term = dieuKhoanThanhToanId
+      ? await this.dieuKhoan.findByIdOrThrow(dieuKhoanThanhToanId, tx)
+      : null;
+    if (dto.baoGiaId) {
+      await this.assertQuoteExists(dto.baoGiaId, tx);
+    }
+    return {
+      nhanVienBanHangId,
+      dieuKhoanThanhToanId,
+      soNgayDuocNo:
+        dto.soNgayDuocNo ?? term?.soNgayDuocNo ?? customer.soNgayDuocNo,
+      hanThanhToan: dto.hanThanhToan ? parseDateOnly(dto.hanThanhToan) : null,
+      thamChieu: dto.thamChieu ?? null,
+      lapKemHoaDon: dto.lapKemHoaDon ?? false,
+      dieuKhoanKhac: dto.dieuKhoanKhac ?? null,
+      tenMatHangChung: dto.tenMatHangChung ?? null,
+      nguoiLienHe: dto.nguoiLienHe ?? customer.lienHeHoTen,
+      baoGiaId: dto.baoGiaId ?? null,
+      ...this.customerSnapshot(customer),
+    };
+  }
+
+  // Only the header fields the caller sent (undefined keeps the stored value).
+  private async updateHeader(
+    dto: UpdatePhieuXuatDto,
+    currentCustomerId: string,
+    customer: KhachHang,
+    tx: Prisma.TransactionClient,
+  ) {
+    if (dto.nhanVienBanHangId) {
+      await this.nhanVien.assertUsable(dto.nhanVienBanHangId, tx);
+    }
+    const term = dto.dieuKhoanThanhToanId
+      ? await this.dieuKhoan.findByIdOrThrow(dto.dieuKhoanThanhToanId, tx)
+      : null;
+    if (dto.baoGiaId) {
+      await this.assertQuoteExists(dto.baoGiaId, tx);
+    }
+    return {
+      nhanVienBanHangId: dto.nhanVienBanHangId,
+      dieuKhoanThanhToanId: dto.dieuKhoanThanhToanId,
+      soNgayDuocNo: dto.soNgayDuocNo ?? term?.soNgayDuocNo,
+      hanThanhToan:
+        dto.hanThanhToan === undefined
+          ? undefined
+          : dto.hanThanhToan === null
+            ? null
+            : parseDateOnly(dto.hanThanhToan),
+      thamChieu: dto.thamChieu,
+      lapKemHoaDon: dto.lapKemHoaDon,
+      dieuKhoanKhac: dto.dieuKhoanKhac,
+      tenMatHangChung: dto.tenMatHangChung,
+      nguoiLienHe: dto.nguoiLienHe,
+      baoGiaId: dto.baoGiaId,
+      // Re-snapshot only when the order moves to another customer.
+      ...(customer.id === currentCustomerId
+        ? {}
+        : this.customerSnapshot(customer)),
+    };
+  }
+
+  private customerSnapshot(customer: KhachHang) {
+    return {
+      khachTenSnapshot: customer.tenKH,
+      khachMaSoThueSnapshot: customer.maSoThue,
+      khachDiaChiSnapshot: customer.diaChi,
+    };
+  }
+
+  private async assertQuoteExists(
+    id: string,
+    tx: Prisma.TransactionClient,
+  ): Promise<void> {
+    if ((await tx.baoGia.count({ where: { id } })) === 0) {
+      throw new AppException('BAO_GIA_NOT_FOUND');
+    }
+  }
+
+  private async draftTotal(
+    id: string,
+    tx: Prisma.TransactionClient,
+  ): Promise<Prisma.Decimal> {
+    const lines = await tx.chiTietPhieuXuatHang.findMany({
+      where: { phieuXuatHangId: id },
+      select: {
+        soLuong: true,
+        donGia: true,
+        tienChietKhau: true,
+        tienThueGtgt: true,
+      },
+    });
+    return computeNetTotals(lines).tongThanhToan;
+  }
+
+  // Open receivables of a customer: Σ (payable − effective receipts) over issued orders.
+  async getOutstandingByCustomer(
+    khachHangId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<Prisma.Decimal> {
+    const orders = await (tx ?? this.prisma).phieuXuatHang.findMany({
+      where: { khachHangId, trangThai: { in: ['da_xuat_kho', 'da_giao'] } },
+      select: {
+        chiTietPhieuXuatHangs: {
+          select: {
+            soLuong: true,
+            donGia: true,
+            tienChietKhau: true,
+            tienThueGtgt: true,
+          },
+        },
+        phieuThuCongNos: { select: { soTien: true, huyAt: true } },
+      },
+    });
+    return orders.reduce((sum, order) => {
+      const total = computeNetTotals(order.chiTietPhieuXuatHangs).tongThanhToan;
+      const paid = order.phieuThuCongNos
+        .filter((r) => !r.huyAt)
+        .reduce((acc, r) => acc.plus(r.soTien), ZERO);
+      return sum.plus(total).minus(paid);
+    }, ZERO);
+  }
+
+  // Credit limit (open question #44): 0 means "no limit". `extra` is what this order adds
+  // on top of the already issued receivables (0 when the order is already issued).
+  private async assertCreditLimit(
+    customer: KhachHang,
+    extra: Prisma.Decimal,
+    tx: Prisma.TransactionClient,
+  ): Promise<void> {
+    if (customer.soNoToiDa.lte(0)) {
+      return;
+    }
+    const after = (await this.getOutstandingByCustomer(customer.id, tx)).plus(
+      extra,
+    );
+    if (after.gt(customer.soNoToiDa)) {
+      throw new AppException('KHACH_HANG_CREDIT_EXCEEDED', {
+        params: {
+          hanMuc: customer.soNoToiDa.toFixed(2),
+          sauPhieu: after.toFixed(2),
+        },
+        details: {
+          hanMuc: customer.soNoToiDa.toFixed(2),
+          congNoSauPhieu: after.toFixed(2),
+        },
+      });
+    }
   }
 
   private async recordBelowMin(
@@ -769,7 +1019,7 @@ export class PhieuXuatHangService {
     const rows = await this.prisma.$queryRaw<{ id: string }[]>`
       SELECT id FROM (
         SELECT p.id,
-          (SELECT COALESCE(SUM(c.so_luong * c.don_gia), 0)
+          (SELECT COALESCE(SUM(c.so_luong * c.don_gia - c.tien_chiet_khau + c.tien_thue_gtgt), 0)
              FROM chi_tiet_phieu_xuat_hang c WHERE c.phieu_xuat_hang_id = p.id) AS total,
           (SELECT COALESCE(SUM(t.so_tien), 0)
              FROM phieu_thu_cong_no t

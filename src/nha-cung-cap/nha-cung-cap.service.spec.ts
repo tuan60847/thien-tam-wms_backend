@@ -1,9 +1,12 @@
-import type { NhaCungCap } from '@prisma/client';
+import { Prisma, type NhaCungCap } from '@prisma/client';
 import type { AuditService } from '../audit/audit.service.js';
 import type { AuthenticatedUser } from '../auth/types/authenticated-user.type.js';
 import type { ClockService } from '../common/clock/clock.service.js';
 import type { CodeGeneratorService } from '../common/code-generator/code-generator.service.js';
 import { addDays, parseDateOnly } from '../common/clock/vn-date.js';
+import type { DieuKhoanThanhToanService } from '../dieu-khoan-thanh-toan/dieu-khoan-thanh-toan.service.js';
+import type { NhanVienKinhDoanhService } from '../nhan-vien-kinh-doanh/nhan-vien-kinh-doanh.service.js';
+import type { NhomDoiTacService } from '../nhom-doi-tac/nhom-doi-tac.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import { NhaCungCapService } from './nha-cung-cap.service.js';
 
@@ -44,7 +47,27 @@ const make = (id: string, over: Partial<NhaCungCap> = {}): NhaCungCap => ({
   updatedById: null,
   createdAt: NOW,
   updatedAt: NOW,
-  ...over,
+  // Fields added for the MISA screens: all optional or defaulted.
+  loaiChuThe: 'to_chuc',
+  maSoThue: null,
+  soCCCD: null,
+  email: null,
+  dtCoDinh: null,
+  fax: null,
+  website: null,
+  soNgayDuocNo: null,
+  soNoToiDa: new Prisma.Decimal(0),
+  quocGia: 'Việt Nam',
+  tinhTp: null,
+  quanHuyen: null,
+  xaPhuong: null,
+  nhomDoiTacId: null,
+  dieuKhoanThanhToanId: null,
+  nhanVienMuaHangId: null,
+  // `undefined` means "column default" in Prisma, so it must not override the defaults above.
+  ...Object.fromEntries(
+    Object.entries(over).filter(([, v]) => v !== undefined),
+  ),
 });
 
 const fullLicense: Partial<NhaCungCap> = {
@@ -124,6 +147,9 @@ function setup(
       { next } as unknown as CodeGeneratorService,
       { record } as unknown as AuditService,
       clock,
+      { assertExists: vi.fn() } as unknown as NhomDoiTacService,
+      { findByIdOrThrow: vi.fn() } as unknown as DieuKhoanThanhToanService,
+      { assertUsable: vi.fn() } as unknown as NhanVienKinhDoanhService,
     ),
     store,
     nhaCungCap,

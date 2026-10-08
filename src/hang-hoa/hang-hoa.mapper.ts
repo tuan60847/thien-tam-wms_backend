@@ -54,6 +54,8 @@ export function toHangHoaResponse(
     ...toHangHoaListItem(row, viewerRole),
     soDangKy: row.soDangKy,
     ghiChu: row.ghiChu,
+    maQuyCach: row.maQuyCach,
+    thueSuatGtgt: money(row.thueSuatGtgt),
     tyLeQuyDoi: row.tyLeQuyDois.map((u) => ({
       id: u.id,
       donViTinh: u.donViTinh,

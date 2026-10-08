@@ -23,6 +23,9 @@ import { KhoViTriModule } from './kho-vi-tri/kho-vi-tri.module.js';
 import { HealthModule } from './health/health.module.js';
 import { LoaiHangModule } from './loai-hang/loai-hang.module.js';
 import { NhaCungCapModule } from './nha-cung-cap/nha-cung-cap.module.js';
+import { DieuKhoanThanhToanModule } from './dieu-khoan-thanh-toan/dieu-khoan-thanh-toan.module.js';
+import { NhanVienKinhDoanhModule } from './nhan-vien-kinh-doanh/nhan-vien-kinh-doanh.module.js';
+import { NhomDoiTacModule } from './nhom-doi-tac/nhom-doi-tac.module.js';
 import { PhieuNhapHangModule } from './phieu-nhap-hang/phieu-nhap-hang.module.js';
 import { PhieuThuCongNoModule } from './phieu-thu-cong-no/phieu-thu-cong-no.module.js';
 import { PhieuXuatHangModule } from './phieu-xuat-hang/phieu-xuat-hang.module.js';
@@ -130,6 +133,9 @@ const REQUEST_ID_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
     PhieuXuatHangModule,
     PhieuThuCongNoModule,
     TepDinhKemModule,
+    NhomDoiTacModule,
+    DieuKhoanThanhToanModule,
+    NhanVienKinhDoanhModule,
     AuthModule,
     HealthModule,
   ],

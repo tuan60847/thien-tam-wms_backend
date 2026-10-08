@@ -11,6 +11,8 @@ const row = {
   maSP: 'SP00001',
   tenSP: 'Paracetamol 500mg',
   quyCach: 'Hộp 10 vỉ',
+  maQuyCach: null,
+  thueSuatGtgt: new Prisma.Decimal('8'),
   donViTinhGia: 'hộp',
   giaNhap: new Prisma.Decimal('90000'),
   giaHienThi: new Prisma.Decimal('125000.5'),

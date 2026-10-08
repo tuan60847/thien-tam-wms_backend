@@ -379,6 +379,53 @@ const DEFINITIONS = {
     message: 'Không thể lưu hoặc đọc tệp, vui lòng thử lại',
   },
 
+  NHAN_VIEN_KD_NOT_FOUND: {
+    status: 404,
+    message: 'Không tìm thấy nhân viên kinh doanh',
+  },
+  NHAN_VIEN_KD_INACTIVE: {
+    status: 422,
+    message: 'Nhân viên kinh doanh đã ngừng hoạt động',
+  },
+  NHAN_VIEN_KD_USER_TAKEN: {
+    status: 409,
+    message: 'Tài khoản người dùng này đã được gắn cho nhân viên khác',
+  },
+  NHAN_VIEN_KD_IN_USE: {
+    status: 409,
+    message: 'Nhân viên đã phát sinh dữ liệu nên không thể xóa',
+  },
+  DIEU_KHOAN_NOT_FOUND: {
+    status: 404,
+    message: 'Không tìm thấy điều khoản thanh toán',
+  },
+  DIEU_KHOAN_CODE_TAKEN: {
+    status: 409,
+    message: 'Mã điều khoản thanh toán đã tồn tại',
+  },
+  DIEU_KHOAN_IN_USE: {
+    status: 409,
+    message: 'Điều khoản thanh toán đang được sử dụng nên không thể xóa',
+  },
+  NHOM_DOI_TAC_NOT_FOUND: {
+    status: 404,
+    message: 'Không tìm thấy nhóm khách hàng / nhà cung cấp',
+  },
+  NHOM_DOI_TAC_CODE_TAKEN: {
+    status: 409,
+    message: 'Mã nhóm đã tồn tại',
+  },
+  NHOM_DOI_TAC_IN_USE: {
+    status: 409,
+    message: 'Nhóm đang được sử dụng nên không thể xóa',
+  },
+  BAO_GIA_NOT_FOUND: { status: 404, message: 'Không tìm thấy báo giá' },
+  KHACH_HANG_CREDIT_EXCEEDED: {
+    status: 422,
+    message: (p) =>
+      `Công nợ vượt hạn mức của khách hàng (hạn mức ${Number(p.hanMuc ?? 0).toFixed(2)}, sau phiếu này ${Number(p.sauPhieu ?? 0).toFixed(2)})`,
+  },
+
   COMMON_NOT_FOUND: {
     status: 404,
     message: 'Không tìm thấy tài nguyên yêu cầu',

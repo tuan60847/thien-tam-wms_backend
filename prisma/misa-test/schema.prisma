@@ -1,0 +1,573 @@
+// ============================================================
+// MISA SME 2023 - Schema THAM KHẢO / THỬ NGHIỆM (độc lập)
+// Mô phỏng các màn hình trong thư mục img/ (phần mềm kế toán đang dùng).
+//
+// - File riêng, KHÔNG liên quan tới prisma/schema.prisma và prisma/migrations.
+// - Chưa có migration, chưa chạy lên database nào; chỉ dùng để thiết kế/đối chiếu.
+// - Có generator output riêng để không ghi đè Prisma Client của dự án.
+// - Kiểm tra: npx prisma validate --schema prisma/misa-test/schema.prisma
+//
+// Màn hình tương ứng:
+//   Khách hàng / Nhà cung cấp ........ DoiTuong (+ TaiKhoanNganHang, DiaDiemGiaoHang)
+//   Bán hàng > Báo giá ............... BaoGia
+//   Bán hàng > Chứng từ bán hàng ..... ChungTuBanHang + ChiTietBanHang
+//   Bán hàng > Trả lại hàng bán ...... TraLaiHangBan + ChiTietTraLai
+//   Kho > Nhập, xuất kho ............. PhieuXuatKho + ChiTietXuatKho
+//   Quỹ > Thu tiền khách hàng ........ PhieuThuTien + ChiTietPhieuThu
+//   Bán hàng > Đối trừ chứng từ ...... DoiTruChungTu
+//   Bán hàng > Công nợ ............... (báo cáo tính từ ChungTuBanHang - DoiTruChungTu; không phải bảng)
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// ------------------------------------------------------------
+// ENUM
+// ------------------------------------------------------------
+
+enum LoaiDoiTuong {
+  to_chuc
+  ca_nhan
+}
+
+enum LoaiChungTuBan {
+  ban_hang_hoa_dich_vu_trong_nuoc
+  ban_hang_xuat_khau
+  ban_hang_dai_ly
+}
+
+enum PhuongThucThu {
+  tien_mat
+  tien_gui
+}
+
+// Chưa thu tiền = ghi nợ phải thu; Thu tiền ngay = sinh phiếu thu cùng lúc
+enum HinhThucThanhToan {
+  chua_thu_tien
+  thu_tien_ngay
+}
+
+enum TrangThaiGhiSo {
+  chua_ghi_so
+  da_ghi_so
+}
+
+enum LoaiThuChi {
+  phieu_thu
+  phieu_chi
+}
+
+// Tình trạng nợ (khung "Phân tích tình trạng nợ" ở màn hình Công nợ)
+enum TinhTrangNo {
+  no_binh_thuong
+  no_kho_doi
+  no_khong_the_doi
+}
+
+// ------------------------------------------------------------
+// DANH MỤC DÙNG CHUNG
+// ------------------------------------------------------------
+
+// Tài khoản kế toán: 131 Phải thu KH, 331 Phải trả NCC, 1111 Tiền mặt, 5111 Doanh thu, 635 CK thanh toán...
+model TaiKhoanKeToan {
+  id      String  @id @default(uuid())
+  soTk    String  @unique @map("so_tk") @db.VarChar(20)
+  tenTk   String  @map("ten_tk") @db.VarChar(200)
+  bac     Int     @default(1)
+  ngungSd Boolean @default(false) @map("ngung_su_dung")
+
+  @@map("misa_tai_khoan_ke_toan")
+}
+
+model NhomKhNcc {
+  id  String @id @default(uuid())
+  ma  String @unique @db.VarChar(20)
+  ten String @db.VarChar(200)
+
+  doiTuongs DoiTuong[]
+
+  @@map("misa_nhom_kh_ncc")
+}
+
+model DieuKhoanThanhToan {
+  id           String @id @default(uuid())
+  ma           String @unique @db.VarChar(20)
+  ten          String @db.VarChar(200)
+  soNgayDuocNo Int    @default(0) @map("so_ngay_duoc_no")
+
+  doiTuongs   DoiTuong[]
+  chungTuBans ChungTuBanHang[]
+
+  @@map("misa_dieu_khoan_thanh_toan")
+}
+
+// Nhân viên bán hàng / mua hàng (ô "NV bán hàng", "NV Mua hàng")
+model NhanVien {
+  id           String  @id @default(uuid())
+  ma           String  @unique @db.VarChar(20)
+  ten          String  @db.VarChar(200)
+  ngungTheoDoi Boolean @default(false) @map("ngung_theo_doi")
+
+  doiTuongs   DoiTuong[]
+  baoGias     BaoGia[]
+  chungTuBans ChungTuBanHang[]
+  phieuThus   PhieuThuTien[]
+
+  @@map("misa_nhan_vien")
+}
+
+model HangHoa {
+  id           String  @id @default(uuid())
+  maHang       String  @unique @map("ma_hang") @db.VarChar(30)
+  tenHang      String  @map("ten_hang") @db.VarChar(255)
+  dvt          String  @db.VarChar(30)
+  maQuyCach    String? @map("ma_quy_cach") @db.VarChar(50)
+  giaBan       Decimal @default(0) @map("gia_ban") @db.Decimal(18, 2)
+  thueSuatGtgt Decimal @default(0) @map("thue_suat_gtgt") @db.Decimal(5, 2)
+  ngungTheoDoi Boolean @default(false) @map("ngung_theo_doi")
+
+  chiTietBaoGias  ChiTietBaoGia[]
+  chiTietBanHangs ChiTietBanHang[]
+  chiTietXuatKhos ChiTietXuatKho[]
+  chiTietTraLais  ChiTietTraLai[]
+
+  @@map("misa_hang_hoa")
+}
+
+// ------------------------------------------------------------
+// KHÁCH HÀNG / NHÀ CUNG CẤP (cùng một form "Thêm khách hàng / Thêm nhà cung cấp")
+// Tab 1 "Thông tin chung" + Tab 2 "Khác"
+// ------------------------------------------------------------
+
+model DoiTuong {
+  id           String       @id @default(uuid())
+  ma           String       @unique @db.VarChar(30) // vd 0389.068.101 (mã KH thường là số điện thoại), NCC00022
+  loai         LoaiDoiTuong @default(to_chuc) // 1. Tổ chức / 2. Cá nhân
+  laKhachHang  Boolean      @default(true) @map("la_khach_hang")
+  laNhaCungCap Boolean      @default(false) @map("la_nha_cung_cap")
+  xungHo       String?      @map("xung_ho") @db.VarChar(20)
+  hoVaTen      String       @map("ho_va_ten") @db.VarChar(255)
+  diaChi       String?      @map("dia_chi") @db.VarChar(500)
+  dienGiai     String?      @map("dien_giai") @db.VarChar(500)
+
+  maSoThue  String?   @map("ma_so_thue") @db.VarChar(20)
+  soCccd    String?   @map("so_cccd") @db.VarChar(20)
+  soHoChieu String?   @map("so_ho_chieu") @db.VarChar(30)
+  ngayCap   DateTime? @map("ngay_cap") @db.Date
+  noiCap    String?   @map("noi_cap") @db.VarChar(255)
+
+  dtDiDong String? @map("dt_di_dong") @db.VarChar(20)
+  dtCoDinh String? @map("dt_co_dinh") @db.VarChar(20)
+  email    String? @db.VarChar(150)
+  fax      String? @db.VarChar(20)
+  website  String? @db.VarChar(200)
+
+  // Điều khoản thanh toán / hạn mức nợ (liên quan câu mở #44)
+  soNgayDuocNo Int?    @map("so_ngay_duoc_no")
+  soNoToiDa    Decimal @default(0) @map("so_no_toi_da") @db.Decimal(18, 2)
+
+  // Tab "Khác": vị trí địa lý
+  quocGia   String  @default("Việt Nam") @map("quoc_gia") @db.VarChar(100)
+  tinhTp    String? @map("tinh_tp") @db.VarChar(100)
+  quanHuyen String? @map("quan_huyen") @db.VarChar(100)
+  xaPhuong  String? @map("xa_phuong") @db.VarChar(100)
+
+  // Tab "Khác": người liên hệ
+  lhXungHo       String? @map("lh_xung_ho") @db.VarChar(20)
+  lhHoTen        String? @map("lh_ho_ten") @db.VarChar(200)
+  lhChucDanh     String? @map("lh_chuc_danh") @db.VarChar(100)
+  lhDtDiDong     String? @map("lh_dt_di_dong") @db.VarChar(20)
+  lhDtDiDongKhac String? @map("lh_dt_di_dong_khac") @db.VarChar(20)
+  lhDtCoDinh     String? @map("lh_dt_co_dinh") @db.VarChar(20)
+  lhEmail        String? @map("lh_email") @db.VarChar(150)
+  lhDiaChi       String? @map("lh_dia_chi") @db.VarChar(500)
+  daiDienTheoPl  String? @map("dai_dien_theo_pl") @db.VarChar(200)
+
+  // Tab "Khác": người nhận hóa đơn
+  hdTenNguoiNhan String? @map("hd_ten_nguoi_nhan") @db.VarChar(200)
+  hdDienThoai    String? @map("hd_dien_thoai") @db.VarChar(20)
+  hdDiaChi       String? @map("hd_dia_chi") @db.VarChar(500)
+  hdEmail        String? @map("hd_email") @db.VarChar(150)
+
+  ngungTheoDoi Boolean  @default(false) @map("ngung_theo_doi")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  nhomId String?    @map("nhom_id")
+  nhom   NhomKhNcc? @relation(fields: [nhomId], references: [id])
+
+  dieuKhoanTtId String?             @map("dieu_khoan_tt_id")
+  dieuKhoanTt   DieuKhoanThanhToan? @relation(fields: [dieuKhoanTtId], references: [id])
+
+  // NV bán hàng (khách) hoặc NV mua hàng (nhà cung cấp)
+  nhanVienId String?   @map("nhan_vien_id")
+  nhanVien   NhanVien? @relation(fields: [nhanVienId], references: [id])
+
+  taiKhoanNganHangs TaiKhoanNganHang[]
+  diaDiemGiaoHangs  DiaDiemGiaoHang[]
+  baoGias           BaoGia[]
+  chungTuBans       ChungTuBanHang[]
+  traLaiHangs       TraLaiHangBan[]
+  phieuXuatKhos     PhieuXuatKho[]
+  phieuThus         PhieuThuTien[]
+
+  @@index([maSoThue])
+  @@index([hoVaTen])
+  @@map("misa_doi_tuong")
+}
+
+model TaiKhoanNganHang {
+  id             String  @id @default(uuid())
+  soTaiKhoan     String  @map("so_tai_khoan") @db.VarChar(30)
+  tenNganHang    String  @map("ten_ngan_hang") @db.VarChar(200)
+  chiNhanh       String? @map("chi_nhanh") @db.VarChar(200)
+  tinhTpNganHang String? @map("tinh_tp_ngan_hang") @db.VarChar(100)
+
+  doiTuongId String   @map("doi_tuong_id")
+  doiTuong   DoiTuong @relation(fields: [doiTuongId], references: [id], onDelete: Cascade)
+
+  @@index([doiTuongId])
+  @@map("misa_tai_khoan_ngan_hang")
+}
+
+model DiaDiemGiaoHang {
+  id      String @id @default(uuid())
+  diaDiem String @map("dia_diem") @db.VarChar(500)
+
+  doiTuongId String   @map("doi_tuong_id")
+  doiTuong   DoiTuong @relation(fields: [doiTuongId], references: [id], onDelete: Cascade)
+
+  @@index([doiTuongId])
+  @@map("misa_dia_diem_giao_hang")
+}
+
+// ------------------------------------------------------------
+// BÁN HÀNG
+// ------------------------------------------------------------
+
+// Tab "Báo giá": đơn giá, thuế suất, chiết khấu từng mặt hàng theo khách
+model BaoGia {
+  id           String    @id @default(uuid())
+  soBaoGia     String    @unique @map("so_bao_gia") @db.VarChar(30)
+  ngayBaoGia   DateTime  @map("ngay_bao_gia") @db.Date
+  hanHieuLuc   DateTime? @map("han_hieu_luc") @db.Date
+  dienGiai     String?   @map("dien_giai") @db.VarChar(500)
+  tongTienHang Decimal   @default(0) @map("tong_tien_hang") @db.Decimal(18, 2)
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  khachHangId String   @map("khach_hang_id")
+  khachHang   DoiTuong @relation(fields: [khachHangId], references: [id])
+
+  nhanVienId String?   @map("nhan_vien_id")
+  nhanVien   NhanVien? @relation(fields: [nhanVienId], references: [id])
+
+  chiTiets    ChiTietBaoGia[]
+  chungTuBans ChungTuBanHang[]
+
+  @@map("misa_bao_gia")
+}
+
+model ChiTietBaoGia {
+  id       String  @id @default(uuid())
+  soLuong  Decimal @default(0) @map("so_luong") @db.Decimal(18, 3)
+  donGia   Decimal @default(0) @map("don_gia") @db.Decimal(18, 2)
+  tyLeCk   Decimal @default(0) @map("ty_le_ck") @db.Decimal(5, 2)
+  thueSuat Decimal @default(0) @map("thue_suat") @db.Decimal(5, 2)
+
+  baoGiaId String @map("bao_gia_id")
+  baoGia   BaoGia @relation(fields: [baoGiaId], references: [id], onDelete: Cascade)
+
+  hangHoaId String  @map("hang_hoa_id")
+  hangHoa   HangHoa @relation(fields: [hangHoaId], references: [id])
+
+  @@index([baoGiaId])
+  @@map("misa_chi_tiet_bao_gia")
+}
+
+// Cửa sổ "Chứng từ bán hàng" (các ô: Khách hàng, Mã số thuế, Địa chỉ, Diễn giải, NV bán hàng,
+// Tham chiếu, Ngày hạch toán, Ngày chứng từ, Số chứng từ, Điều khoản TT, Số ngày được nợ, Hạn thanh toán)
+model ChungTuBanHang {
+  id               String            @id @default(uuid())
+  soChungTu        String            @unique @map("so_chung_tu") @db.VarChar(30) // vd BH14214
+  loai             LoaiChungTuBan    @default(ban_hang_hoa_dich_vu_trong_nuoc)
+  hinhThucTt       HinhThucThanhToan @default(chua_thu_tien) @map("hinh_thuc_tt")
+  phuongThucThu    PhuongThucThu?    @map("phuong_thuc_thu") // khi "Thu tiền ngay"
+  kiemPhieuXuatKho Boolean           @default(true) @map("kiem_phieu_xuat_kho")
+  lapKemHoaDon     Boolean           @default(false) @map("lap_kem_hoa_don")
+  daLapHoaDon      Boolean           @default(false) @map("da_lap_hoa_don")
+  trangThaiGhiSo   TrangThaiGhiSo    @default(chua_ghi_so) @map("trang_thai_ghi_so")
+
+  ngayHachToan DateTime  @map("ngay_hach_toan") @db.Date
+  ngayChungTu  DateTime  @map("ngay_chung_tu") @db.Date
+  hanThanhToan DateTime? @map("han_thanh_toan") @db.Date
+  soNgayDuocNo Int?      @map("so_ngay_duoc_no")
+
+  // Ảnh chụp thông tin khách tại thời điểm lập chứng từ
+  tenKhachHang String? @map("ten_khach_hang") @db.VarChar(255)
+  maSoThue     String? @map("ma_so_thue") @db.VarChar(20)
+  diaChi       String? @map("dia_chi") @db.VarChar(500)
+  nguoiLienHe  String? @map("nguoi_lien_he") @db.VarChar(200)
+  dienGiai     String? @map("dien_giai") @db.VarChar(500) // vd "Bán hàng Nhà thuốc Thiên Huệ"
+  thamChieu    String? @map("tham_chieu") @db.VarChar(255)
+
+  // Tab "5. Khác"
+  inKemBangKe     Boolean   @default(false) @map("in_kem_bang_ke")
+  soBangKe        String?   @map("so_bang_ke") @db.VarChar(30)
+  ngayBangKe      DateTime? @map("ngay_bang_ke") @db.Date
+  tenMatHangChung String?   @map("ten_mat_hang_chung") @db.VarChar(255)
+  diaDiemGiaoHang String?   @map("dia_diem_giao_hang") @db.VarChar(500)
+  dieuKhoanKhac   String?   @map("dieu_khoan_khac") @db.VarChar(1000)
+
+  // Chân chứng từ
+  tongTienHang      Decimal @default(0) @map("tong_tien_hang") @db.Decimal(18, 2)
+  tienChietKhau     Decimal @default(0) @map("tien_chiet_khau") @db.Decimal(18, 2)
+  tienThueGtgt      Decimal @default(0) @map("tien_thue_gtgt") @db.Decimal(18, 2)
+  tongTienThanhToan Decimal @default(0) @map("tong_tien_thanh_toan") @db.Decimal(18, 2)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  khachHangId String   @map("khach_hang_id")
+  khachHang   DoiTuong @relation(fields: [khachHangId], references: [id])
+
+  nhanVienId String?   @map("nhan_vien_id")
+  nhanVien   NhanVien? @relation(fields: [nhanVienId], references: [id])
+
+  dieuKhoanTtId String?             @map("dieu_khoan_tt_id")
+  dieuKhoanTt   DieuKhoanThanhToan? @relation(fields: [dieuKhoanTtId], references: [id])
+
+  baoGiaId String? @map("bao_gia_id")
+  baoGia   BaoGia? @relation(fields: [baoGiaId], references: [id])
+
+  chiTiets      ChiTietBanHang[]
+  phieuXuatKhos PhieuXuatKho[]
+  doiTrus       DoiTruChungTu[]
+
+  @@index([khachHangId, ngayChungTu])
+  @@index([ngayChungTu])
+  @@map("misa_chung_tu_ban_hang")
+}
+
+// Lưới chi tiết với 5 tab: 1. Hàng tiền, 2. Thuế, 3. Giá vốn, 4. Thống kê, 5. Khác
+model ChiTietBanHang {
+  id    String @id @default(uuid())
+  thuTu Int    @default(1)
+
+  // 1. Hàng tiền
+  hangKhuyenMai Boolean @default(false) @map("hang_khuyen_mai")
+  dvt           String  @db.VarChar(30)
+  soLuong       Decimal @default(0) @map("so_luong") @db.Decimal(18, 3)
+  donGia        Decimal @default(0) @map("don_gia") @db.Decimal(18, 2)
+  thanhTien     Decimal @default(0) @map("thanh_tien") @db.Decimal(18, 2)
+  tyLeCk        Decimal @default(0) @map("ty_le_ck") @db.Decimal(5, 2)
+  tienChietKhau Decimal @default(0) @map("tien_chiet_khau") @db.Decimal(18, 2)
+  tkChietKhau   String? @map("tk_chiet_khau") @db.VarChar(20) // vd 5111
+  tkDoanhThu    String? @map("tk_doanh_thu") @db.VarChar(20)
+  tkCongNo      String? @map("tk_cong_no") @db.VarChar(20) // vd 131
+
+  // 2. Thuế
+  thueSuatGtgt Decimal @default(0) @map("thue_suat_gtgt") @db.Decimal(5, 2)
+  tienThueGtgt Decimal @default(0) @map("tien_thue_gtgt") @db.Decimal(18, 2)
+
+  // 3. Giá vốn
+  tkGiaVon   String? @map("tk_gia_von") @db.VarChar(20)
+  tkKho      String? @map("tk_kho") @db.VarChar(20)
+  donGiaVon  Decimal @default(0) @map("don_gia_von") @db.Decimal(18, 2)
+  tienGiaVon Decimal @default(0) @map("tien_gia_von") @db.Decimal(18, 2)
+
+  // 4. Thống kê: khoản mục chi phí, đối tượng THCP, công trình, hợp đồng... (để mở rộng)
+  maThongKe String? @map("ma_thong_ke") @db.VarChar(50)
+
+  chungTuId String         @map("chung_tu_id")
+  chungTu   ChungTuBanHang @relation(fields: [chungTuId], references: [id], onDelete: Cascade)
+
+  hangHoaId String  @map("hang_hoa_id")
+  hangHoa   HangHoa @relation(fields: [hangHoaId], references: [id])
+
+  @@index([chungTuId])
+  @@map("misa_chi_tiet_ban_hang")
+}
+
+// Tab "Trả lại hàng bán" (vd BTL00024: hàng bán bị trả lại - giảm trừ công nợ; kiêm phiếu nhập)
+model TraLaiHangBan {
+  id                String         @id @default(uuid())
+  soChungTu         String         @unique @map("so_chung_tu") @db.VarChar(30)
+  ngayHachToan      DateTime       @map("ngay_hach_toan") @db.Date
+  ngayChungTu       DateTime       @map("ngay_chung_tu") @db.Date
+  soHoaDon          String?        @map("so_hoa_don") @db.VarChar(30)
+  dienGiai          String?        @map("dien_giai") @db.VarChar(500)
+  loaiChungTu       String?        @map("loai_chung_tu") @db.VarChar(100) // "Hàng bán bị trả lại - Giảm trừ công nợ"
+  kiemPhieuNhap     Boolean        @default(true) @map("kiem_phieu_nhap")
+  trangThaiGhiSo    TrangThaiGhiSo @default(chua_ghi_so) @map("trang_thai_ghi_so")
+  tongTienHang      Decimal        @default(0) @map("tong_tien_hang") @db.Decimal(18, 2)
+  tienChietKhau     Decimal        @default(0) @map("tien_chiet_khau") @db.Decimal(18, 2)
+  tienThueGtgt      Decimal        @default(0) @map("tien_thue_gtgt") @db.Decimal(18, 2)
+  tongTienThanhToan Decimal        @default(0) @map("tong_tien_thanh_toan") @db.Decimal(18, 2)
+
+  khachHangId String   @map("khach_hang_id")
+  khachHang   DoiTuong @relation(fields: [khachHangId], references: [id])
+
+  chiTiets ChiTietTraLai[]
+
+  @@map("misa_tra_lai_hang_ban")
+}
+
+model ChiTietTraLai {
+  id               String  @id @default(uuid())
+  dvt              String  @db.VarChar(30)
+  soLuong          Decimal @default(0) @map("so_luong") @db.Decimal(18, 3)
+  donGia           Decimal @default(0) @map("don_gia") @db.Decimal(18, 2)
+  thanhTien        Decimal @default(0) @map("thanh_tien") @db.Decimal(18, 2)
+  tyLeCk           Decimal @default(0) @map("ty_le_ck") @db.Decimal(5, 2)
+  tienChietKhau    Decimal @default(0) @map("tien_chiet_khau") @db.Decimal(18, 2)
+  tkChietKhau      String? @map("tk_chiet_khau") @db.VarChar(20)
+  soChungTuBanHang String? @map("so_ct_ban_hang") @db.VarChar(30)
+
+  traLaiId String        @map("tra_lai_id")
+  traLai   TraLaiHangBan @relation(fields: [traLaiId], references: [id], onDelete: Cascade)
+
+  hangHoaId String  @map("hang_hoa_id")
+  hangHoa   HangHoa @relation(fields: [hangHoaId], references: [id])
+
+  @@index([traLaiId])
+  @@map("misa_chi_tiet_tra_lai")
+}
+
+// ------------------------------------------------------------
+// KHO
+// ------------------------------------------------------------
+
+// Màn hình "Nhập, xuất kho" với loại "Phiếu xuất kho"; sinh từ chứng từ bán hàng khi tick "Kiêm phiếu xuất kho"
+model PhieuXuatKho {
+  id             String         @id @default(uuid())
+  soChungTu      String?        @map("so_chung_tu") @db.VarChar(30)
+  ngayChungTu    DateTime       @map("ngay_chung_tu") @db.Date
+  dienGiai       String?        @map("dien_giai") @db.VarChar(500) // "Xuất kho bán hàng QT Thanh Loan"
+  tongTien       Decimal        @default(0) @map("tong_tien") @db.Decimal(18, 2) // theo giá vốn
+  daLapCtBanHang Boolean        @default(true) @map("da_lap_ct_ban_hang")
+  trangThaiGhiSo TrangThaiGhiSo @default(chua_ghi_so) @map("trang_thai_ghi_so")
+
+  doiTuongId String?   @map("doi_tuong_id") // khách (có thể là "Nội bộ")
+  doiTuong   DoiTuong? @relation(fields: [doiTuongId], references: [id])
+
+  chungTuBanHangId String?         @map("chung_tu_ban_hang_id")
+  chungTuBanHang   ChungTuBanHang? @relation(fields: [chungTuBanHangId], references: [id])
+
+  chiTiets ChiTietXuatKho[]
+
+  @@index([ngayChungTu])
+  @@map("misa_phieu_xuat_kho")
+}
+
+model ChiTietXuatKho {
+  id        String    @id @default(uuid())
+  dvt       String    @db.VarChar(30)
+  soLuong   Decimal   @default(0) @map("so_luong") @db.Decimal(18, 3)
+  donGia    Decimal   @default(0) @map("don_gia") @db.Decimal(18, 2) // đơn giá vốn
+  thanhTien Decimal   @default(0) @map("thanh_tien") @db.Decimal(18, 2)
+  // Cột "Số lô", "Hạn sử dụng" có trong lưới nhưng đang để trống ở dữ liệu thật
+  soLo      String?   @map("so_lo") @db.VarChar(50)
+  hanSuDung DateTime? @map("han_su_dung") @db.Date
+
+  phieuXuatKhoId String       @map("phieu_xuat_kho_id")
+  phieuXuatKho   PhieuXuatKho @relation(fields: [phieuXuatKhoId], references: [id], onDelete: Cascade)
+
+  hangHoaId String  @map("hang_hoa_id")
+  hangHoa   HangHoa @relation(fields: [hangHoaId], references: [id])
+
+  @@index([phieuXuatKhoId])
+  @@map("misa_chi_tiet_xuat_kho")
+}
+
+// ------------------------------------------------------------
+// THU TIỀN & CÔNG NỢ
+// ------------------------------------------------------------
+
+// Phiếu thu tiền khách hàng (PT12802 "Thu tiền của QT Nhất"); dùng cho cả "Thu tiền khách hàng"
+// và "Thu tiền khách hàng hàng loạt" (một phiếu thu gộp nhiều chứng từ công nợ)
+model PhieuThuTien {
+  id             String         @id @default(uuid())
+  soChungTu      String         @unique @map("so_chung_tu") @db.VarChar(30) // PT12802
+  loai           LoaiThuChi     @default(phieu_thu)
+  phuongThuc     PhuongThucThu  @default(tien_mat) @map("phuong_thuc")
+  ngayHachToan   DateTime       @map("ngay_hach_toan") @db.Date
+  ngayChungTu    DateTime       @map("ngay_chung_tu") @db.Date
+  ngayGhiSoQuy   DateTime?      @map("ngay_ghi_so_quy") @db.Date
+  dienGiai       String?        @map("dien_giai") @db.VarChar(500)
+  nguoiNop       String?        @map("nguoi_nop") @db.VarChar(200)
+  loaiChungTu    String?        @map("loai_chung_tu") @db.VarChar(100) // "Phiếu thu tiền mặt khách hàng"
+  soTien         Decimal        @default(0) @map("so_tien") @db.Decimal(18, 2)
+  trangThaiGhiSo TrangThaiGhiSo @default(chua_ghi_so) @map("trang_thai_ghi_so")
+  createdAt      DateTime       @default(now()) @map("created_at")
+
+  khachHangId String   @map("khach_hang_id")
+  khachHang   DoiTuong @relation(fields: [khachHangId], references: [id])
+
+  nhanVienId String?   @map("nhan_vien_id")
+  nhanVien   NhanVien? @relation(fields: [nhanVienId], references: [id])
+
+  chiTiets ChiTietPhieuThu[]
+  doiTrus  DoiTruChungTu[]
+
+  @@index([ngayChungTu])
+  @@index([khachHangId])
+  @@map("misa_phieu_thu_tien")
+}
+
+model ChiTietPhieuThu {
+  id            String  @id @default(uuid())
+  dienGiai      String? @map("dien_giai") @db.VarChar(500)
+  tkNo          String  @map("tk_no") @db.VarChar(20) // 1111
+  tkCo          String  @map("tk_co") @db.VarChar(20) // 131
+  soTien        Decimal @default(0) @map("so_tien") @db.Decimal(18, 2)
+  tyLeCk        Decimal @default(0) @map("ty_le_ck") @db.Decimal(5, 2)
+  tienChietKhau Decimal @default(0) @map("tien_chiet_khau") @db.Decimal(18, 2)
+  tkChietKhau   String? @map("tk_chiet_khau") @db.VarChar(20) // 635
+
+  phieuThuId String       @map("phieu_thu_id")
+  phieuThu   PhieuThuTien @relation(fields: [phieuThuId], references: [id], onDelete: Cascade)
+
+  // Chứng từ công nợ mà khoản thu này thanh toán (có thể trống nếu thu tạm ứng)
+  chungTuBanHangId String? @map("chung_tu_ban_hang_id")
+
+  @@index([phieuThuId])
+  @@map("misa_chi_tiet_phieu_thu")
+}
+
+// Màn hình "Đối trừ chứng từ": ghép chứng từ thanh toán với chứng từ công nợ
+// (Số phải thu - Số đã thu/giảm trừ = Số còn phải thu)
+model DoiTruChungTu {
+  id              String   @id @default(uuid())
+  ngayDoiTru      DateTime @map("ngay_doi_tru") @db.Date
+  soTienDoiTru    Decimal  @map("so_tien_doi_tru") @db.Decimal(18, 2)
+  taiKhoanPhaiThu String   @default("131") @map("tai_khoan_phai_thu") @db.VarChar(20)
+  daBoDoiTru      Boolean  @default(false) @map("da_bo_doi_tru")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  phieuThuId String       @map("phieu_thu_id")
+  phieuThu   PhieuThuTien @relation(fields: [phieuThuId], references: [id])
+
+  chungTuBanHangId String         @map("chung_tu_ban_hang_id")
+  chungTuBanHang   ChungTuBanHang @relation(fields: [chungTuBanHangId], references: [id])
+
+  @@index([chungTuBanHangId])
+  @@index([phieuThuId])
+  @@map("misa_doi_tru_chung_tu")
+}
+
+// Khung "Phân tích tình trạng nợ" gắn với chứng từ công nợ (nợ bình thường / khó đòi / không thể đòi)
+model TinhTrangNoChungTu {
+  id               String      @id @default(uuid())
+  chungTuBanHangId String      @unique @map("chung_tu_ban_hang_id")
+  tinhTrang        TinhTrangNo @default(no_binh_thuong) @map("tinh_trang")
+  ghiChu           String?     @db.VarChar(500)
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+
+  @@map("misa_tinh_trang_no_chung_tu")
+}
