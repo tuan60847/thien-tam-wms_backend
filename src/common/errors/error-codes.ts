@@ -364,6 +364,21 @@ const DEFINITIONS = {
     message: 'Phiếu thu đã được hủy trước đó',
   },
 
+  TEP_NOT_FOUND: { status: 404, message: 'Không tìm thấy tệp đính kèm' },
+  TEP_NO_FILE: { status: 400, message: 'Chưa chọn tệp để tải lên' },
+  TEP_TYPE_NOT_ALLOWED: {
+    status: 422,
+    message: 'Định dạng tệp không được hỗ trợ (chỉ PDF, JPEG, PNG, WebP)',
+  },
+  TEP_TARGET_INVALID: {
+    status: 422,
+    message: 'Đối tượng đính kèm không hợp lệ hoặc đã đủ số tệp tối đa',
+  },
+  TEP_STORAGE_FAILED: {
+    status: 500,
+    message: 'Không thể lưu hoặc đọc tệp, vui lòng thử lại',
+  },
+
   COMMON_NOT_FOUND: {
     status: 404,
     message: 'Không tìm thấy tài nguyên yêu cầu',

@@ -15,6 +15,8 @@ export async function createTestApp(
   }).compile();
   const app = moduleRef.createNestApplication<INestApplication<App>>();
   configureApp(app, loadAppConfig(process.env));
-  await app.init();
+  // Listen once on a free port: left alone, supertest would open and close a server for
+  // every request, and long suites then hit intermittent cross-talk between those servers.
+  await app.listen(0, '127.0.0.1');
   return app;
 }

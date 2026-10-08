@@ -105,7 +105,7 @@ Không có phụ thuộc vòng: `phieu-*` phụ thuộc `ton-kho`, không có ch
 | Log | `nestjs-pino`, request-id, che dữ liệu nhạy cảm | [logging.md](../03-cross-cutting/logging.md) |
 | Phân trang / lọc / sắp xếp | `PaginationQueryDto` + helper | [pagination-filtering.md](../03-cross-cutting/pagination-filtering.md) |
 | Audit | `createdById`/`updatedById`, `NhatKyHeThong`, `BienDongTonKho` | [audit-trail.md](../03-cross-cutting/audit-trail.md) |
-| File | Cloudinary qua `tep-dinh-kem` | [file-upload.md](../03-cross-cutting/file-upload.md) |
+| File | Đĩa máy chủ (`UPLOAD_DIR`) qua `tep-dinh-kem`, DB lưu đường dẫn | [file-upload.md](../03-cross-cutting/file-upload.md) |
 | Job nền | `@nestjs/schedule` | [background-jobs.md](../03-cross-cutting/background-jobs.md) |
 | Cấu hình | `@nestjs/config`, validate khi khởi động | [env-vars.md](../05-ops/env-vars.md) |
 | Quan sát | health check, request log | [observability.md](../05-ops/observability.md) |

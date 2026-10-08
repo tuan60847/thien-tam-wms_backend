@@ -36,6 +36,7 @@ export async function resetAndSeed(
   prisma: PrismaService,
 ): Promise<SeededRoles> {
   assertTestDatabase();
+  await prisma.tepDinhKem.deleteMany();
   await prisma.nhatKyHeThong.deleteMany();
   await prisma.phieuThuCongNo.deleteMany();
   await prisma.chiTietPhieuXuatHang.deleteMany();

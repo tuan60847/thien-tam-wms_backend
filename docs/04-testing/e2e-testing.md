@@ -26,7 +26,7 @@ afterAll  : app.close()
 
 - Dựng app qua một hàm `createTestApp(overrides?)` (đề xuất `test/helpers/create-app.ts`) **áp dụng đúng cấu hình của `main.ts`** (prefix `api/v1`, `ValidationPipe`, `HttpExceptionFilter`, logger tắt) — tránh test chạy trên cấu hình khác production. Tách cấu hình dùng chung thành `configureApp(app)` trong `src/app.setup.ts` mà `main.ts` và test cùng gọi.
 - `JOBS_ENABLED=false` trong `.env.test`.
-- Provider giả được truyền qua `overrides`: `ClockService`, `CloudinaryService`.
+- Provider giả được truyền qua `overrides`: `ClockService`; tệp đính kèm dùng thư mục tạm qua `UPLOAD_DIR`.
 
 ## 4. Fixture và factory (chạm DB)
 

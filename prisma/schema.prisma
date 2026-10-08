@@ -53,6 +53,15 @@ enum LoaiKiemSoat {
 }
 
 // Phương thức thanh toán cho nhà cung cấp
+// Đối tượng có thể đính kèm tệp (TepDinhKem.loaiDoiTuong)
+enum LoaiDoiTuongTep {
+  khach_hang
+  nha_cung_cap
+  hang_hoa
+  phieu_nhap_hang
+  so_lo
+}
+
 enum PhuongThucThanhToan {
   tien_mat
   chuyen_khoan
@@ -109,6 +118,7 @@ model User {
   phieuXuatHuy      PhieuXuatHang[]  @relation("PhieuXuatHangCancelledBy")
   phieuThuTao       PhieuThuCongNo[] @relation("PhieuThuCongNoCreatedBy")
   phieuThuHuy       PhieuThuCongNo[] @relation("PhieuThuCongNoVoidedBy")
+  tepDinhKems       TepDinhKem[]
   phieuNhapHangTao  PhieuNhapHang[]  @relation("PhieuNhapHangCreatedBy")
   phieuNhapHangSua  PhieuNhapHang[]  @relation("PhieuNhapHangUpdatedBy")
   phieuNhapXacNhan  PhieuNhapHang[]  @relation("PhieuNhapHangConfirmedBy")
@@ -577,6 +587,25 @@ model PhieuThanhToan {
 // ------------------------------------------------------------
 // HẠ TẦNG DÙNG CHUNG
 // ------------------------------------------------------------
+
+// Tệp đính kèm đa hình: nội dung nằm trên đĩa máy chủ (UPLOAD_DIR), MySQL chỉ giữ
+// đường dẫn tương đối và metadata. Không có FK tới đối tượng đích (service kiểm tồn tại).
+model TepDinhKem {
+  id           String          @id @default(uuid())
+  loaiDoiTuong LoaiDoiTuongTep @map("loai_doi_tuong")
+  doiTuongId   String          @map("doi_tuong_id") @db.VarChar(36)
+  tenFile      String          @map("ten_file") @db.VarChar(150)
+  mime         String          @db.VarChar(100)
+  kichThuoc    Int             @map("kich_thuoc")
+  duongDan     String          @unique @map("duong_dan") @db.VarChar(255)
+  createdAt    DateTime        @default(now()) @map("created_at")
+
+  createdById String? @map("created_by_id")
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+
+  @@index([loaiDoiTuong, doiTuongId])
+  @@map("tep_dinh_kem")
+}
 
 // Nhật ký thao tác nhạy cảm (append-only). Xem docs/03-cross-cutting/audit-trail.md
 model NhatKyHeThong {

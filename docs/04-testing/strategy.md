@@ -66,7 +66,7 @@ Cấm: `it.skip`/`describe.skip`/`it.only` được merge (lint rule), test ph�
 - Dữ liệu test dựng bằng **factory** ([unit-testing.md](unit-testing.md) §4, [e2e-testing.md](e2e-testing.md) §4), không bằng seed dùng chung.
 - Thời gian: `ClockService` giả cho mọi logic phụ thuộc "hôm nay"; e2e cho phép đặt đồng hồ giả bằng provider override.
 - Múi giờ: test chạy với `TZ=UTC` (process) để lộ lỗi chuyển múi giờ; cố ý có các case sát nửa đêm giờ VN.
-- Dịch vụ ngoài (Cloudinary): luôn stub; không gọi mạng.
+- Dịch vụ ngoài: luôn stub; không gọi mạng. Tệp đính kèm ghi vào thư mục tạm, xóa sau test.
 
 ## 7. Test không-chức-năng (nhẹ, phase 1)
 

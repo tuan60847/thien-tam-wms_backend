@@ -35,7 +35,7 @@ Phiên bản lấy từ `package.json` hiện tại. Cột "Trạng thái": **c�
 | `helmet` | M0 | Header bảo mật | Bắt buộc cho API public |
 | `@nestjs/throttler` | M1 | Rate limit `/auth/login` | Bù cho giới hạn đã biết của Auth |
 | `decimal.js` | — | **Không cần**: dùng `Prisma.Decimal` (đã là decimal.js) | Tránh thêm phụ thuộc |
-| `cloudinary` + `multer` (`@types/multer`) | M7 | Upload file | `.env.example` đã có biến Cloudinary |
+| `multer` (qua `@nestjs/platform-express`) | M7 | Upload file lên đĩa máy chủ | cấu hình bằng `UPLOAD_DIR` |
 | `exceljs` | phase 2 | Xuất báo cáo `.xlsx` | Chỉ khi bạn xác nhận cần |
 
 Không đề xuất: BullMQ/Redis (xem [background-jobs.md](../03-cross-cutting/background-jobs.md)), GraphQL, TypeORM, Passport strategy khác.

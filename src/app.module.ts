@@ -32,6 +32,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
 import { RolesModule } from './roles/roles.module.js';
 import { SoLoModule } from './so-lo/so-lo.module.js';
 import { TonKhoModule } from './ton-kho/ton-kho.module.js';
+import { TepDinhKemModule } from './tep-dinh-kem/tep-dinh-kem.module.js';
 import { TyLeQuyDoiModule } from './ty-le-quy-doi/ty-le-quy-doi.module.js';
 import { UsersModule } from './users/users.module.js';
 
@@ -128,6 +129,7 @@ const REQUEST_ID_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
     PhieuThanhToanModule,
     PhieuXuatHangModule,
     PhieuThuCongNoModule,
+    TepDinhKemModule,
     AuthModule,
     HealthModule,
   ],

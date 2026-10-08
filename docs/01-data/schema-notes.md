@@ -21,7 +21,7 @@ Tài liệu này (1) ghi bất biến/ràng buộc nghiệp vụ theo từng b�
 | P-13 | Bảng mới `BienDongTonKho` (sổ biến động tồn) | Truy vết mọi thay đổi tồn | M4 | tồn kho |
 | P-14 | Bảng mới `NhatKyHeThong` (nhật ký thao tác nhạy cảm) | Audit | M0 | audit |
 | P-15 | Bảng mới `BoDemMa` (bộ đếm sinh mã chứng từ) | Mã phiếu không trùng | M0 | phiếu, user, khách |
-| P-16 | Bảng mới `TepDinhKem` (file đính kèm đa hình) | Cloudinary | M7 | file |
+| P-16 | Bảng mới `TepDinhKem` (file đính kèm đa hình; nội dung trên đĩa, DB giữ đường dẫn) | Lưu đĩa máy chủ | M7 (đã làm) | file |
 | P-17 | `HangHoa.maSP String @unique` | Khóa nghiệp vụ | M2 | hàng hóa |
 | P-18 | CHECK constraint bằng SQL thô: `ton_kho.so_luong >= 0`, `chi_tiet_*.so_luong > 0`, `ty_le_quy_doi.so_luong_quy_doi >= 1`, tiền `>= 0` | Lưới an toàn cuối cùng | theo module | tồn kho, phiếu |
 | P-19 | Index `RefreshToken.expiresAt` | Job dọn token hết hạn | M8 | auth |

@@ -28,7 +28,7 @@
 | Thao tác nhạy cảm (hủy, điều chỉnh, đổi role, khóa user, bán dưới giá tối thiểu) | warn | `event`, đối tượng, `userId`, `lyDo` — song song với `NhatKyHeThong` |
 | Job nền | info | bắt đầu / kết thúc / số bản ghi xử lý / thời gian; lỗi → error |
 | Đăng nhập thất bại | warn | `username` (băm hoặc cắt, xem §4), `ip`, lý do mã `AUTH_*`; **không** log mật khẩu |
-| Lỗi gọi dịch vụ ngoài (Cloudinary) | error | mã lỗi nhà cung cấp, không log nội dung file |
+| Lỗi ghi/xóa tệp trên đĩa | error | đường dẫn tương đối và mã lỗi, không log nội dung file |
 | Khởi động / tắt | info | phiên bản, `NODE_ENV`, port, kết nối DB OK |
 
 Không log: từng truy vấn Prisma ở production (bật `query` event chỉ khi `LOG_LEVEL=debug`), nội dung response, danh sách đầy đủ dòng chi tiết phiếu.

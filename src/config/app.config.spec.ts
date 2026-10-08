@@ -18,10 +18,17 @@ describe('loadAppConfig', () => {
       minShelfLifeDaysIssue: 0,
       jobsEnabled: true,
       jobsTimezone: 'Asia/Ho_Chi_Minh',
+      uploadDir: './uploads',
       swaggerEnabled: true,
       swaggerUser: null,
       swaggerPassword: null,
     });
+  });
+
+  it('UPLOAD_DIR đặt được thư mục lưu tệp đính kèm', () => {
+    expect(
+      loadAppConfig(base({ UPLOAD_DIR: '/var/wms/uploads' })).uploadDir,
+    ).toBe('/var/wms/uploads');
   });
 
   it('production: log info, Swagger tắt mặc định', () => {

@@ -16,7 +16,7 @@
 ```
 Internet ──► (reverse proxy / web server của hosting, HTTPS) ──► Node (PM2, fork, 1 instance) ──► MySQL
                                                                       │
-                                                                      └─► Cloudinary (M7)
+                                                                      └─► UPLOAD_DIR (đĩa)
 ```
 
 - **[GIẢ ĐỊNH]** Hosting cho chạy tiến trình Node dài hạn qua PM2 và có reverse proxy tới một cổng nội bộ; MySQL do hosting cung cấp.
@@ -98,7 +98,7 @@ Chạy bởi Jenkins stage `Deploy` (sau phê duyệt thủ công):
 | DB | dump hằng ngày + trước mỗi lần migrate; giữ 14 ngày hằng ngày, 12 tháng hằng tháng |
 | Lưu ở đâu | tối thiểu một nơi **ngoài** máy chạy ứng dụng **[GIẢ ĐỊNH: hosting cung cấp backup — cần xác nhận]** |
 | Kiểm khôi phục | mỗi quý restore thử vào DB trống và chạy `GET /ton-kho/doi-soat` |
-| File Cloudinary | do nhà cung cấp lưu; sao lưu metadata trong DB |
+| Tệp đính kèm | thư mục `UPLOAD_DIR` trên máy chủ; **phải sao lưu cùng DB** (DB chỉ giữ đường dẫn) |
 
 Dữ liệu tồn kho và chứng từ là dữ liệu tuân thủ ngành dược — **thời gian lưu trữ bắt buộc** (thường nhiều năm) cần xác nhận với bên pháp lý (câu hỏi mở).
 

@@ -201,8 +201,8 @@ Tổng số endpoint: **109** (102 trong module nghiệp vụ + 7 hạ tầng).
 | GET | `/api/v1/health/live` | Public | — | Kiểm tra tiến trình sống | [observability.md](../05-ops/observability.md) |
 | GET | `/api/v1/audit` | JWT | ADMIN | Xem nhật ký thao tác hệ thống | [audit-trail.md](../03-cross-cutting/audit-trail.md) |
 | POST | `/api/v1/tep-dinh-kem` | JWT | theo quyền sửa đối tượng gắn | Tải tệp lên (multipart) | [file-upload.md](../03-cross-cutting/file-upload.md) |
-| GET | `/api/v1/tep-dinh-kem` | JWT | theo quyền xem đối tượng gắn | Danh sách tệp của một đối tượng | [file-upload.md](../03-cross-cutting/file-upload.md) |
-| GET | `/api/v1/tep-dinh-kem/:id/url` | JWT | theo quyền xem đối tượng gắn | Lấy URL ký có hạn ngắn | [file-upload.md](../03-cross-cutting/file-upload.md) |
+| GET | `/api/v1/tep-dinh-kem` | JWT | mọi role | Danh sách tệp của một đối tượng | [file-upload.md](../03-cross-cutting/file-upload.md) |
+| GET | `/api/v1/tep-dinh-kem/:id/tai-ve` | JWT | mọi role | Tải nội dung tệp (stream qua API) | [file-upload.md](../03-cross-cutting/file-upload.md) |
 | DELETE | `/api/v1/tep-dinh-kem/:id` | JWT | theo quyền sửa đối tượng gắn | Xóa tệp | [file-upload.md](../03-cross-cutting/file-upload.md) |
 
 ## Ghi chú

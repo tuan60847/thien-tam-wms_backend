@@ -1,6 +1,6 @@
-# Tải file lên (Cloudinary)
+# Tải file lên (lưu trên đĩa máy chủ)
 
-Thuộc milestone **M7**, không chặn MVP. `.env.example` đã có `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`.
+Thuộc milestone **M7**, đã triển khai (module `src/tep-dinh-kem/`). Quyết định lưu trữ: **nội dung file nằm trên đĩa máy chủ, MySQL chỉ lưu đường dẫn tương đối và metadata** (không dùng Cloudinary, không lưu BLOB).
 
 ## 1. Dùng để làm gì
 
@@ -12,74 +12,66 @@ Thuộc milestone **M7**, không chặn MVP. `.env.example` đã có `CLOUDINARY
 | `so_lo` | phiếu kiểm nghiệm (COA) của lô | trung bình |
 | `hang_hoa` | ảnh sản phẩm, tờ hướng dẫn | thấp |
 
-Câu hỏi mở: danh sách đối tượng cần đính kèm, và có cần ảnh sản phẩm hay không.
+## 2. Mô hình dữ liệu
 
-## 2. Mô hình dữ liệu (P-16)
-
-Bảng `TepDinhKem` đa hình (không FK cứng tới từng bảng đích):
+Bảng `tep_dinh_kem` đa hình (không FK cứng tới từng bảng đích; service kiểm đối tượng tồn tại khi tải lên):
 
 | Trường | Ghi chú |
 |---|---|
 | `id` | uuid |
 | `loaiDoiTuong` (`LoaiDoiTuongTep`) | `khach_hang`, `nha_cung_cap`, `hang_hoa`, `phieu_nhap_hang`, `so_lo` |
-| `doiTuongId` | id đối tượng (service kiểm tồn tại khi upload) |
-| `tenFile` | tên gốc, đã làm sạch |
-| `mime` | kiểu thật (kiểm bằng magic bytes, không tin header client) |
+| `doiTuongId` | id đối tượng |
+| `tenFile` | tên gốc đã làm sạch (≤ 150 ký tự) |
+| `mime` | kiểu thật, xác định bằng magic bytes |
 | `kichThuoc` | byte |
-| `publicId`, `url` | định danh và URL trên Cloudinary |
-| `loaiTruyCap` | `private` / `public` (xem §4) |
+| `duongDan` | **đường dẫn tương đối** trong `UPLOAD_DIR`, duy nhất, không bao giờ trả ra API |
 | `createdById`, `createdAt` | ai, khi nào |
 
-Index: `(loaiDoiTuong, doiTuongId)`.
+Index: `(loaiDoiTuong, doiTuongId)`. File nằm tại `<UPLOAD_DIR>/<loaiDoiTuong>/<năm>/<uuid>.<đuôi>`; tên trên đĩa do server sinh, không lấy từ client.
 
 ## 3. Quy tắc
 
 | Quy tắc | Giá trị |
 |---|---|
-| Kích thước tối đa | 10 MB mỗi file |
+| Kích thước tối đa | 10 MB mỗi file (vượt → `413 COMMON_PAYLOAD_TOO_LARGE`) |
 | Định dạng cho phép | `application/pdf`, `image/jpeg`, `image/png`, `image/webp` |
 | Số file tối đa mỗi đối tượng | 20 |
-| Tên file | làm sạch (bỏ ký tự điều khiển, `/`, `..`), giới hạn 150 ký tự |
-| Kiểm tra loại | bằng nội dung file (magic bytes), không chỉ đuôi/`Content-Type` |
+| Tên file | bỏ đường dẫn, ký tự điều khiển, `..`; sửa lỗi mã hóa tên của multer (latin1 → UTF-8) |
+| Kiểm tra loại | bằng nội dung (magic bytes), không tin đuôi/`Content-Type`; SVG/HTML bị từ chối |
 | Quét mã độc | chưa có ở phase 1 (câu hỏi mở) |
 
-Vi phạm → `TEP_TOO_LARGE` / `TEP_TYPE_NOT_ALLOWED` (422). Cloudinary lỗi → `TEP_UPLOAD_FAILED` (502), không lộ chi tiết nhà cung cấp.
+| Mã lỗi | HTTP | Khi nào |
+|---|---|---|
+| `TEP_NOT_FOUND` | 404 | tệp không tồn tại hoặc file đã mất trên đĩa |
+| `TEP_NO_FILE` | 400 | không gửi file hoặc file rỗng |
+| `TEP_TYPE_NOT_ALLOWED` | 422 | nội dung không phải PDF/JPEG/PNG/WebP |
+| `TEP_TARGET_INVALID` | 422 | đối tượng không tồn tại hoặc đã đủ 20 tệp |
+| `TEP_STORAGE_FAILED` | 500 | không ghi được file ra đĩa |
+| `AUTH_FORBIDDEN` | 403 | role không được sửa đối tượng gắn |
 
-| Mã lỗi | HTTP | Khi nào | Message (VN) |
-|---|---|---|---|
-| `TEP_NOT_FOUND` | 404 | tệp không tồn tại | Không tìm thấy tệp đính kèm |
-| `TEP_TOO_LARGE` | 422 | quá 10 MB | Tệp vượt quá dung lượng cho phép (10 MB) |
-| `TEP_TYPE_NOT_ALLOWED` | 422 | sai định dạng / magic bytes | Định dạng tệp không được hỗ trợ |
-| `TEP_TARGET_INVALID` | 422 | đối tượng gắn không tồn tại hoặc đã đủ 20 tệp | Đối tượng đính kèm không hợp lệ hoặc đã đủ số tệp tối đa |
-| `TEP_UPLOAD_FAILED` | 502 | Cloudinary lỗi | Không thể tải tệp lên, vui lòng thử lại |
+## 4. Quyền truy cập
 
-## 4. Quyền truy cập file
-
-- File nhạy cảm (giấy phép, hợp đồng) lưu với `type: 'authenticated'` trên Cloudinary; API trả **URL ký có hạn ngắn** (ví dụ 5 phút) sinh theo yêu cầu qua `GET /api/v1/tep-dinh-kem/:id/url`, chỉ cho user có quyền xem đối tượng gắn.
-- Ảnh sản phẩm không nhạy cảm có thể `public`.
-- Không bao giờ ghi URL ký vào DB hay log.
-- Quyền: upload / xóa theo quyền **sửa** đối tượng gắn; xem theo quyền **đọc** đối tượng gắn ([permissions.md](permissions.md) §3.7).
+- **Đọc / tải về:** mọi role đã đăng nhập (giống quyền đọc chính các đối tượng này). Nội dung được **stream qua API có xác thực**, không có URL công khai; response đặt `Content-Disposition: attachment`, `X-Content-Type-Options: nosniff`, `Cache-Control: private, no-store`.
+- **Tải lên / xóa:** theo quyền **sửa** đối tượng gắn: `khach_hang`, `nha_cung_cap` → ADMIN, QUAN_LY_KHO, KE_TOAN; `hang_hoa`, `so_lo` → ADMIN, QUAN_LY_KHO; `phieu_nhap_hang` → ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO.
+- Xóa tệp ghi `NhatKyHeThong` (`tep_dinh_kem.delete`).
 
 ## 5. Endpoint
 
 | Method | Path | Ghi chú |
 |---|---|---|
 | POST | `/api/v1/tep-dinh-kem` | `multipart/form-data`: `file`, `loaiDoiTuong`, `doiTuongId` |
-| GET | `/api/v1/tep-dinh-kem` | lọc `loaiDoiTuong`, `doiTuongId`; danh sách metadata |
-| GET | `/api/v1/tep-dinh-kem/:id/url` | trả `{ url, expiresAt }` |
-| DELETE | `/api/v1/tep-dinh-kem/:id` | xóa DB + xóa trên Cloudinary |
+| GET | `/api/v1/tep-dinh-kem` | lọc `loaiDoiTuong`, `doiTuongId`; phân trang; chỉ trả metadata |
+| GET | `/api/v1/tep-dinh-kem/:id/tai-ve` | stream nội dung file |
+| DELETE | `/api/v1/tep-dinh-kem/:id` | xóa bản ghi rồi xóa file |
 
-(Module `tep-dinh-kem` chưa có doc riêng trong `02-modules/`: là hạ tầng dùng chung, chốt ở đây và ở [endpoints-catalog.md](../06-api/endpoints-catalog.md).)
+## 6. Vận hành
 
-## 6. Cài đặt (đề xuất)
-
-- Gói: `cloudinary`, `@nestjs/platform-express` (đã có, có `FileInterceptor`), `multer` (`@types/multer`).
-- `FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } })`.
-- `CloudinaryService.upload(buffer, { folder, resourceType: 'auto', type })` dùng `upload_stream`; `folder` = `thientam-wms/<env>/<loaiDoiTuong>`.
-- `TepDinhKemService`: kiểm tra đối tượng tồn tại và quyền, kiểm tra magic bytes, upload, ghi DB. Nếu ghi DB lỗi sau khi upload → xóa file trên Cloudinary (bù trừ); nếu xóa Cloudinary lỗi → log `error` và để job dọn file mồ côi (phase 2).
-- Cấu hình qua `@nestjs/config` (`cloudinary.config.ts`); thiếu biến thì module upload tắt và endpoint trả `503` thay vì làm app không khởi động (chỉ ở môi trường không cấu hình Cloudinary).
+- `UPLOAD_DIR` (mặc định `./uploads`, đã nằm trong `.gitignore`). Production nên trỏ tới một thư mục ngoài thư mục mã nguồn và **được sao lưu cùng với DB** (DB chỉ giữ đường dẫn: mất thư mục là mất file).
+- Ghi file trước, ghi DB sau; nếu ghi DB lỗi thì xóa file vừa ghi (bù trừ). Xóa: DB trước (cùng nhật ký, một giao dịch), file sau; xóa file lỗi chỉ để lại file mồ côi và ghi log `error` (job dọn mồ côi: phase 2).
+- Mọi đường dẫn được kiểm tra nằm trong `UPLOAD_DIR` trước khi đọc/xóa.
+- Chưa có chống ghi tràn đĩa/quota; theo dõi dung lượng thư mục.
 
 ## 7. Kiểm thử
 
-- Unit: kiểm kích thước/loại/magic bytes; làm sạch tên file; bù trừ khi ghi DB lỗi (mock Cloudinary).
-- e2e: Cloudinary **mock** (thay `CloudinaryService` bằng stub in-memory) — không gọi mạng thật; kiểm upload hợp lệ, file quá lớn, sai loại, đối tượng không tồn tại, quyền (role không có quyền sửa đối tượng → 403), URL ký chỉ cấp cho người được xem.
+- Unit: magic bytes, làm sạch và giải mã tên, quyền theo loại đối tượng, bù trừ khi ghi DB lỗi, lưu/đọc/xóa và chặn thoát thư mục gốc.
+- e2e: tải lên thật vào thư mục tạm (`UPLOAD_DIR` đặt trong test), tải về đúng nội dung và header, file giả `.pdf`, html/svg, quá 10 MB, đủ 20 tệp, quyền theo đối tượng, xóa, file mất trên đĩa.

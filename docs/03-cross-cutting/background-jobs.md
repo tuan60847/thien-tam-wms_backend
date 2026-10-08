@@ -17,7 +17,7 @@ Nâng cấp lên BullMQ khi xuất hiện một trong: cần retry/backoff nhi�
 | `expiry-scan` | hằng ngày 01:00 | Cập nhật `SoLo.trangThai` (`con_han` / `can_date` / `het_han`) theo `hanSuDung` hôm nay và ngưỡng `EXPIRY_WARNING_DAYS` | M4 |
 | `stock-reconcile` | hằng ngày 02:00 | Đối soát `TonKho.soLuong = Σ BienDongTonKho.soLuongThayDoi`; ghi log lỗi nếu lệch ([audit-trail.md](audit-trail.md) §5) | M4 |
 | `refresh-token-cleanup` | hằng ngày 03:00 | Xóa `RefreshToken` đã hết hạn quá 30 ngày (giải quyết giới hạn đã biết của Auth) | M8 |
-| `file-orphan-cleanup` | phase 2 | Xóa file Cloudinary không còn bản ghi DB | sau M7 |
+| `file-orphan-cleanup` | phase 2 | Xóa file trong `UPLOAD_DIR` không còn bản ghi DB | sau M7 |
 
 Không có job gửi thông báo/email ở phase 1: cảnh báo cận date hiện hiển thị qua báo cáo ([bao-cao.md](../02-modules/bao-cao.md)).
 

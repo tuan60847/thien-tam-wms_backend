@@ -44,9 +44,7 @@ Sinh secret: `openssl rand -base64 48`. Đổi secret ⇒ mọi token hiện có
 | `JOBS_TIMEZONE` | `Asia/Ho_Chi_Minh` | không | Múi giờ lịch cron | đã làm (M4) |
 | `SWAGGER_ENABLED` | `true` | không (mặc định: bật ở dev/staging, tắt ở production) | Bật Swagger UI | có (M0) |
 | `SWAGGER_USER` / `SWAGGER_PASSWORD` | `…` | chỉ khi bật Swagger ở production | Basic-auth cho Swagger | có (M0) |
-| `CLOUDINARY_CLOUD_NAME` | `my-cloud` | chỉ khi dùng upload (M7) | Tên cloud | có trong `.env.example` (chưa dùng) |
-| `CLOUDINARY_API_KEY` | `…` | như trên | API key | có trong `.env.example` (chưa dùng) |
-| `CLOUDINARY_API_SECRET` | `…` | như trên | API secret (bí mật) | có trong `.env.example` (chưa dùng) |
+| `UPLOAD_DIR` | `./uploads` | không (mặc định `./uploads`) | Thư mục lưu tệp đính kèm trên đĩa; production nên đặt ngoài mã nguồn và sao lưu cùng DB | đã làm (M7) |
 
 ## 5. Biến chỉ dành cho test
 
@@ -57,7 +55,7 @@ Sinh secret: `openssl rand -base64 48`. Đổi secret ⇒ mọi token hiện có
 | Biến cũ | Trạng thái |
 |---|---|
 | `JWT_SECRET`, `JWT_EXPIRES_IN` | **đã bỏ** (thay bằng bốn biến `JWT_*` ở §2) |
-| `PORT`, `DATABASE_URL`, `CLOUDINARY_*` | giữ nguyên |
+| `PORT`, `DATABASE_URL`, `UPLOAD_DIR` | giữ nguyên |
 
 `@nestjs/observe` hiện nhận `appKey`/`appSecret` **viết cứng placeholder** trong `app.module.ts`. Cần quyết định: bỏ module này, hoặc đưa thành `OBSERVE_APP_KEY`, `OBSERVE_APP_SECRET`, `OBSERVE_SERVICE_ID` (xem [observability.md](observability.md) và [open-questions.md](../open-questions.md)).
 

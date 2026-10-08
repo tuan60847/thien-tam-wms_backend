@@ -75,7 +75,9 @@ Phụ thuộc: không. Là điều kiện cho mọi milestone sau.
 
 ## M7 — Báo cáo & file đính kèm (L)
 
-`bao-cao` (tồn kho, cận date/hết hạn, nhập–xuất–tồn, doanh thu, aging công nợ) và `tep-dinh-kem` (Cloudinary: scan giấy phép, chứng từ nhập, ảnh sản phẩm). Báo cáo làm sau cùng vì đọc từ mọi module và cần dữ liệu thật để kiểm chứng số liệu.
+**Tiến độ M7 (2026-10-07):** `tep-dinh-kem` đã xong (lưu file trên đĩa theo `UPLOAD_DIR`, MySQL giữ đường dẫn; migration `m7_tep_dinh_kem`; xem [file-upload.md](../03-cross-cutting/file-upload.md)). `bao-cao` chưa làm.
+
+`bao-cao` (tồn kho, cận date/hết hạn, nhập–xuất–tồn, doanh thu, aging công nợ) và `tep-dinh-kem` (lưu đĩa máy chủ: scan giấy phép, chứng từ nhập, ảnh sản phẩm). Báo cáo làm sau cùng vì đọc từ mọi module và cần dữ liệu thật để kiểm chứng số liệu.
 
 ## M8 — Hardening & triển khai (M)
 

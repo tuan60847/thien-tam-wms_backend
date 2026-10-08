@@ -18,6 +18,7 @@ export interface AppConfig {
   minShelfLifeDaysIssue: number;
   jobsEnabled: boolean;
   jobsTimezone: string;
+  uploadDir: string;
   swaggerEnabled: boolean;
   swaggerUser: string | null;
   swaggerPassword: string | null;
@@ -125,6 +126,9 @@ export function loadAppConfig(env: NodeJS.ProcessEnv): AppConfig {
     throw new Error(`JOBS_TIMEZONE không hợp lệ: ${jobsTimezone}`);
   }
 
+  // Attachments live on disk under this directory; MySQL only stores relative paths.
+  const uploadDir = env.UPLOAD_DIR || './uploads';
+
   const trustProxy = env.TRUST_PROXY ? Number(env.TRUST_PROXY) : false;
   if (
     trustProxy !== false &&
@@ -164,6 +168,7 @@ export function loadAppConfig(env: NodeJS.ProcessEnv): AppConfig {
     minShelfLifeDaysIssue,
     jobsEnabled: parseBoolean(env.JOBS_ENABLED, true),
     jobsTimezone,
+    uploadDir,
     swaggerEnabled,
     swaggerUser,
     swaggerPassword,
