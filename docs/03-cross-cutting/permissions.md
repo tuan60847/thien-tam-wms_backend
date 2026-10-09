@@ -121,6 +121,8 @@ Cột: **A** = `ADMIN`, **Q** = `QUAN_LY_KHO`, **N** = `NHAN_VIEN_KHO`, **K** = 
 | `tra-lai-hang-ban.xac-nhan` | ✓ | ✓ | ✗ | ✗ |
 | `tra-lai-hang-ban.huy` (phiếu nháp) | ✓ | ✓ | ✓ | ✗ |
 | `tra-lai-hang-ban.huy` (đã nhập lại kho) | ✓ | ✓ | ✗ | ✗ |
+| `bao-gia.list/read` | ✓ | ✓ | ✓ | ✓ |
+| `bao-gia.create/update/delete/chuyen-phieu-xuat` | ✓ | ✓ | ✓ | ✗ |
 | `khach-hang.cong-no` (xem công nợ khách) | ✓ | ✓ | ✗ | ✓ |
 | `phieu-thanh-toan.list/read` | ✓ | ✓ | ✗ | ✓ |
 | `phieu-thanh-toan.create`, `huy` | ✓ | ✗ | ✗ | ✓ |

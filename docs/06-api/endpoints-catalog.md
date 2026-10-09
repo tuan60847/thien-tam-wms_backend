@@ -4,7 +4,7 @@ Bảng phẳng mọi endpoint của hệ thống: method, path, xác thực, rol
 
 Quy ước: `mọi role` = mọi người dùng đã đăng nhập; `Public` = không cần token; prefix `/api/v1` (áp dụng sau M0). Cột **MS** = milestone triển khai ([roadmap.md](../00-overview/roadmap.md)). Cột **Doc** trỏ tới file nguồn.
 
-Tổng số endpoint: **136**. Bảng này được đối chiếu tự động với code và ma trận role bởi `test/catalog-permissions.e2e-spec.ts` (thêm hoặc đổi endpoint mà không sửa bảng này thì test fail).
+Tổng số endpoint: **142**. Bảng này được đối chiếu tự động với code và ma trận role bởi `test/catalog-permissions.e2e-spec.ts` (thêm hoặc đổi endpoint mà không sửa bảng này thì test fail).
 
 ## Auth — [auth](../02-modules/auth.md)
 
@@ -201,6 +201,17 @@ Tổng số endpoint: **136**. Bảng này được đối chiếu tự động 
 | POST | `/api/v1/tra-lai-hang-ban/:id/xac-nhan` | JWT | ADMIN, QUAN_LY_KHO | Nhập lại kho, giảm công nợ phiếu xuất |
 | POST | `/api/v1/tra-lai-hang-ban/:id/huy` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO* | Hủy; phiếu đã nhập lại kho chỉ ADMIN, QUAN_LY_KHO |
 
+## Báo giá
+
+| Method | Path | Auth | Roles | Mô tả |
+|---|---|---|---|---|
+| GET | `/api/v1/bao-gia` | JWT | mọi role | Danh sách (lọc khách, ngày, `conHieuLuc`, `daChuyenPhieuXuat`) |
+| GET | `/api/v1/bao-gia/:id` | JWT | mọi role | Chi tiết kèm dòng và phiếu xuất tạo từ báo giá |
+| POST | `/api/v1/bao-gia` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Lập báo giá (đơn giá, chiết khấu, thuế theo dòng) |
+| PATCH | `/api/v1/bao-gia/:id` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Sửa khi chưa có phiếu xuất chưa hủy (chiTiet = thay toàn bộ) |
+| DELETE | `/api/v1/bao-gia/:id` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Xóa khi chưa từng có phiếu xuất |
+| POST | `/api/v1/bao-gia/:id/chuyen-phieu-xuat` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Tạo phiếu xuất chờ xử lý từ báo giá; người gọi chọn lô/vị trí (`phanBo`) phủ đủ số lượng từng dòng |
+
 ## Danh mục kinh doanh (bổ sung theo MISA)
 
 | Method | Path | Auth | Roles | Mô tả ngắn |
@@ -221,7 +232,7 @@ Tổng số endpoint: **136**. Bảng này được đối chiếu tự động 
 | PATCH | `/api/v1/nhan-vien-kinh-doanh/:id` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Sửa nhân viên kinh doanh |
 | DELETE | `/api/v1/nhan-vien-kinh-doanh/:id` | JWT | ADMIN | Xóa nhân viên kinh doanh |
 
-Khách hàng, nhà cung cấp, hàng hóa, phiếu xuất và phiếu thu nhận/trả thêm các trường mới (hạn mức nợ `soNoToiDa`, `soNgayDuocNo`, điều khoản, nhân viên, nhóm, địa lý, liên hệ; chiết khấu và thuế theo dòng phiếu xuất; `hanThanhToan`; `nguoiNop`...). Chưa có API cho: báo giá, tài khoản ngân hàng, địa điểm giao hàng (bảng đã có trong schema).
+Khách hàng, nhà cung cấp, hàng hóa, phiếu xuất và phiếu thu nhận/trả thêm các trường mới (hạn mức nợ `soNoToiDa`, `soNgayDuocNo`, điều khoản, nhân viên, nhóm, địa lý, liên hệ; chiết khấu và thuế theo dòng phiếu xuất; `hanThanhToan`; `nguoiNop`...). Chưa có API cho: tài khoản ngân hàng, địa điểm giao hàng (bảng đã có trong schema).
 
 ## Báo cáo — [bao-cao](../02-modules/bao-cao.md)
 

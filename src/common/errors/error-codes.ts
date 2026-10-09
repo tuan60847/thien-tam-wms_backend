@@ -420,6 +420,25 @@ const DEFINITIONS = {
     message: 'Nhóm đang được sử dụng nên không thể xóa',
   },
   BAO_GIA_NOT_FOUND: { status: 404, message: 'Không tìm thấy báo giá' },
+  BAO_GIA_DATE_INVALID: {
+    status: 422,
+    message: 'Ngày báo giá hoặc hạn hiệu lực không hợp lệ',
+  },
+  BAO_GIA_UNIT_INVALID: {
+    status: 422,
+    message: 'Đơn vị tính không hợp lệ cho hàng hóa này',
+  },
+  BAO_GIA_EXPIRED: { status: 422, message: 'Báo giá đã hết hạn hiệu lực' },
+  BAO_GIA_ALREADY_CONVERTED: {
+    status: 409,
+    message: 'Báo giá đã được chuyển thành phiếu xuất',
+  },
+  BAO_GIA_EMPTY: { status: 422, message: 'Báo giá chưa có mặt hàng nào' },
+  BAO_GIA_ALLOCATION_INVALID: {
+    status: 422,
+    message:
+      'Phân bổ lô cho báo giá không hợp lệ: phải phủ đủ số lượng của từng dòng báo giá',
+  },
   KHACH_HANG_CREDIT_EXCEEDED: {
     status: 422,
     message: (p) =>
