@@ -44,6 +44,10 @@ function setup(
     returns?: number;
     issueError?: unknown; // thrown by assertIssuable
     customerError?: unknown;
+    soNgayDuocNo?: number | null;
+    hanThanhToan?: Date | null;
+    creditLimit?: string;
+    outstanding?: string; // open receivables of the customer, issued orders
   } = {},
 ) {
   const state = options.state === undefined ? 'cho_xu_ly' : options.state;
@@ -61,8 +65,28 @@ function setup(
         khachHangId: 'kh',
         phuongTienVanChuyenId: null,
         ngayXuatKho: TODAY,
+        soNgayDuocNo: options.soNgayDuocNo ?? null,
+        hanThanhToan: options.hanThanhToan ?? null,
         chiTietPhieuXuatHangs: lines,
       })),
+      findMany: vi.fn(async () =>
+        options.outstanding
+          ? [
+              {
+                chiTietPhieuXuatHangs: [
+                  {
+                    soLuong: 1,
+                    donGia: new Prisma.Decimal(options.outstanding),
+                    tienChietKhau: new Prisma.Decimal(0),
+                    tienThueGtgt: new Prisma.Decimal(0),
+                  },
+                ],
+                doiTrus: [],
+                traLaiHangBans: [],
+              },
+            ]
+          : [],
+      ),
       update: vi.fn(async () => ({})),
     },
     doiTruChungTu: { count: vi.fn(async () => options.receipts ?? 0) },
@@ -102,7 +126,7 @@ function setup(
     {
       findByIdOrThrow: vi.fn(async () => ({
         id: 'kh',
-        soNoToiDa: new Prisma.Decimal(0),
+        soNoToiDa: new Prisma.Decimal(options.creditLimit ?? 0),
       })),
       assertCanBuy,
     } as never,
@@ -196,6 +220,44 @@ describe('PhieuXuatHangService', () => {
       await expect(
         setup({ customerError: inactive }).service.issue('p1', admin),
       ).rejects.toBe(inactive);
+    });
+
+    it('đặt hạn thanh toán = hôm nay + số ngày được nợ khi phiếu chưa có hạn', async () => {
+      const { service, tx } = setup({ soNgayDuocNo: 30 });
+      await service.issue('p1', admin);
+      expect(tx.phieuXuatHang.update).toHaveBeenCalledWith({
+        where: { id: 'p1' },
+        data: { hanThanhToan: new Date('2026-11-05T00:00:00Z') },
+      });
+    });
+
+    it('giữ hạn thanh toán đã nhập tay; không có số ngày nợ thì không đặt hạn', async () => {
+      const manual = setup({
+        soNgayDuocNo: 30,
+        hanThanhToan: new Date('2026-12-01T00:00:00Z'),
+      });
+      await manual.service.issue('p1', admin);
+      expect(manual.tx.phieuXuatHang.update).not.toHaveBeenCalled();
+      const none = setup({ soNgayDuocNo: null });
+      await none.service.issue('p1', admin);
+      expect(none.tx.phieuXuatHang.update).not.toHaveBeenCalled();
+      const zero = setup({ soNgayDuocNo: 0 });
+      await zero.service.issue('p1', admin);
+      expect(zero.tx.phieuXuatHang.update).not.toHaveBeenCalled();
+    });
+
+    it('kiểm lại hạn mức nợ khi xuất kho: vượt → KHACH_HANG_CREDIT_EXCEEDED, không trừ tồn', async () => {
+      const over = setup({ creditLimit: '100000', outstanding: '100000.01' });
+      await expect(over.service.issue('p1', admin)).rejects.toMatchObject({
+        code: 'KHACH_HANG_CREDIT_EXCEEDED',
+      });
+      expect(over.decrease).not.toHaveBeenCalled();
+      const exact = setup({ creditLimit: '100000', outstanding: '100000' });
+      await exact.service.issue('p1', admin);
+      expect(exact.decrease).toHaveBeenCalledTimes(2);
+      const unlimited = setup({ creditLimit: '0', outstanding: '999999999' });
+      await unlimited.service.issue('p1', admin);
+      expect(unlimited.tx.phieuXuatHang.findMany).not.toHaveBeenCalled();
     });
 
     it('thiếu tồn ở một dòng: lỗi lan ra (giao dịch rollback)', async () => {

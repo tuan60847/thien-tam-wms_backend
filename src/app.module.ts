@@ -8,8 +8,6 @@ import { ConfigModule, type ConfigType } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { randomUUID } from 'node:crypto';
-import { AppController } from './app.controller.js';
-import { AppService } from './app.service.js';
 import { AuditModule } from './audit/audit.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { ClockModule } from './common/clock/clock.module.js';
@@ -145,8 +143,6 @@ const REQUEST_ID_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
     AuthModule,
     HealthModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

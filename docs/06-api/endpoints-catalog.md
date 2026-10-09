@@ -4,7 +4,7 @@ Bảng phẳng mọi endpoint của hệ thống: method, path, xác thực, rol
 
 Quy ước: `mọi role` = mọi người dùng đã đăng nhập; `Public` = không cần token; prefix `/api/v1` (áp dụng sau M0). Cột **MS** = milestone triển khai ([roadmap.md](../00-overview/roadmap.md)). Cột **Doc** trỏ tới file nguồn.
 
-Tổng số endpoint: **109** (102 trong module nghiệp vụ + 7 hạ tầng).
+Tổng số endpoint: **136**. Bảng này được đối chiếu tự động với code và ma trận role bởi `test/catalog-permissions.e2e-spec.ts` (thêm hoặc đổi endpoint mà không sửa bảng này thì test fail).
 
 ## Auth — [auth](../02-modules/auth.md)
 
@@ -143,7 +143,7 @@ Tổng số endpoint: **109** (102 trong module nghiệp vụ + 7 hạ tầng).
 | POST | `/api/v1/phieu-nhap-hang` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Lập phiếu nhập (nháp) | M5 |
 | PATCH | `/api/v1/phieu-nhap-hang/:id` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Sửa phiếu nháp (thay toàn bộ dòng nếu gửi `chiTiet`) | M5 |
 | DELETE | `/api/v1/phieu-nhap-hang/:id` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Xóa phiếu nháp | M5 |
-| POST | `/api/v1/phieu-nhap-hang/:id/xac-nhan` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Xác nhận nhập kho, tăng tồn | M5 |
+| POST | `/api/v1/phieu-nhap-hang/:id/xac-nhan` | JWT | ADMIN, QUAN_LY_KHO | Xác nhận nhập kho, tăng tồn | M5 |
 | POST | `/api/v1/phieu-nhap-hang/:id/huy` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Hủy phiếu | M5 |
 
 ## Phiếu thanh toán — [phieu-thanh-toan](../02-modules/phieu-thanh-toan.md)
@@ -184,7 +184,8 @@ Tổng số endpoint: **109** (102 trong module nghiệp vụ + 7 hạ tầng).
 
 | Method | Path | Auth | Roles | Mô tả |
 |---|---|---|---|---|
-| GET | `/api/v1/doi-tru-chung-tu`, `/:id` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Các khoản áp phiếu thu vào phiếu xuất |
+| GET | `/api/v1/doi-tru-chung-tu` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Danh sách các khoản áp phiếu thu vào phiếu xuất |
+| GET | `/api/v1/doi-tru-chung-tu/:id` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Chi tiết một khoản đối trừ |
 | POST | `/api/v1/doi-tru-chung-tu` | JWT | ADMIN, KE_TOAN | Áp số tiền chưa đối trừ của phiếu thu vào một phiếu xuất cùng khách |
 | POST | `/api/v1/doi-tru-chung-tu/:id/bo` | JWT | ADMIN, KE_TOAN | Bỏ đối trừ (tiền về số chưa đối trừ, nợ phiếu xuất tăng lại) |
 
@@ -192,8 +193,11 @@ Tổng số endpoint: **109** (102 trong module nghiệp vụ + 7 hạ tầng).
 
 | Method | Path | Auth | Roles | Mô tả |
 |---|---|---|---|---|
-| GET | `/api/v1/tra-lai-hang-ban`, `/:id` | JWT | mọi role | Danh sách, chi tiết |
-| POST, PATCH, DELETE | `/api/v1/tra-lai-hang-ban`, `/:id` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Lập, sửa, xóa phiếu nháp (gắn một phiếu xuất) |
+| GET | `/api/v1/tra-lai-hang-ban` | JWT | mọi role | Danh sách phiếu trả lại |
+| GET | `/api/v1/tra-lai-hang-ban/:id` | JWT | mọi role | Chi tiết phiếu trả lại |
+| POST | `/api/v1/tra-lai-hang-ban` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Lập phiếu nháp gắn một phiếu xuất |
+| PATCH | `/api/v1/tra-lai-hang-ban/:id` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Sửa phiếu nháp |
+| DELETE | `/api/v1/tra-lai-hang-ban/:id` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Xóa phiếu nháp |
 | POST | `/api/v1/tra-lai-hang-ban/:id/xac-nhan` | JWT | ADMIN, QUAN_LY_KHO | Nhập lại kho, giảm công nợ phiếu xuất |
 | POST | `/api/v1/tra-lai-hang-ban/:id/huy` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO* | Hủy; phiếu đã nhập lại kho chỉ ADMIN, QUAN_LY_KHO |
 
@@ -201,15 +205,21 @@ Tổng số endpoint: **109** (102 trong module nghiệp vụ + 7 hạ tầng).
 
 | Method | Path | Auth | Roles | Mô tả ngắn |
 |---|---|---|---|---|
-| GET | `/api/v1/nhom-doi-tac`, `/:id` | JWT | mọi role | Nhóm khách hàng / nhà cung cấp |
-| POST, PATCH | `/api/v1/nhom-doi-tac`, `/:id` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Tạo, sửa nhóm |
-| DELETE | `/api/v1/nhom-doi-tac/:id` | JWT | ADMIN | Xóa nhóm chưa có thành viên |
-| GET | `/api/v1/dieu-khoan-thanh-toan`, `/:id` | JWT | mọi role | Điều khoản thanh toán (số ngày được nợ) |
-| POST, PATCH | `/api/v1/dieu-khoan-thanh-toan`, `/:id` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Tạo, sửa điều khoản |
-| DELETE | `/api/v1/dieu-khoan-thanh-toan/:id` | JWT | ADMIN | Xóa điều khoản chưa được dùng |
-| GET | `/api/v1/nhan-vien-kinh-doanh`, `/:id` | JWT | mọi role | Nhân viên bán hàng / mua hàng |
-| POST, PATCH | `/api/v1/nhan-vien-kinh-doanh`, `/:id` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Tạo, sửa, ngừng hoạt động |
-| DELETE | `/api/v1/nhan-vien-kinh-doanh/:id` | JWT | ADMIN | Xóa nhân viên chưa phát sinh dữ liệu |
+| GET | `/api/v1/nhom-doi-tac` | JWT | mọi role | Danh sách |
+| GET | `/api/v1/nhom-doi-tac/:id` | JWT | mọi role | Chi tiết |
+| POST | `/api/v1/nhom-doi-tac` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Tạo nhóm khách hàng / nhà cung cấp |
+| PATCH | `/api/v1/nhom-doi-tac/:id` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Sửa nhóm khách hàng / nhà cung cấp |
+| DELETE | `/api/v1/nhom-doi-tac/:id` | JWT | ADMIN | Xóa nhóm khách hàng / nhà cung cấp |
+| GET | `/api/v1/dieu-khoan-thanh-toan` | JWT | mọi role | Danh sách |
+| GET | `/api/v1/dieu-khoan-thanh-toan/:id` | JWT | mọi role | Chi tiết |
+| POST | `/api/v1/dieu-khoan-thanh-toan` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Tạo điều khoản thanh toán |
+| PATCH | `/api/v1/dieu-khoan-thanh-toan/:id` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Sửa điều khoản thanh toán |
+| DELETE | `/api/v1/dieu-khoan-thanh-toan/:id` | JWT | ADMIN | Xóa điều khoản thanh toán |
+| GET | `/api/v1/nhan-vien-kinh-doanh` | JWT | mọi role | Danh sách |
+| GET | `/api/v1/nhan-vien-kinh-doanh/:id` | JWT | mọi role | Chi tiết |
+| POST | `/api/v1/nhan-vien-kinh-doanh` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Tạo nhân viên kinh doanh |
+| PATCH | `/api/v1/nhan-vien-kinh-doanh/:id` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Sửa nhân viên kinh doanh |
+| DELETE | `/api/v1/nhan-vien-kinh-doanh/:id` | JWT | ADMIN | Xóa nhân viên kinh doanh |
 
 Khách hàng, nhà cung cấp, hàng hóa, phiếu xuất và phiếu thu nhận/trả thêm các trường mới (hạn mức nợ `soNoToiDa`, `soNgayDuocNo`, điều khoản, nhân viên, nhóm, địa lý, liên hệ; chiết khấu và thuế theo dòng phiếu xuất; `hanThanhToan`; `nguoiNop`...). Chưa có API cho: báo giá, tài khoản ngân hàng, địa điểm giao hàng (bảng đã có trong schema).
 

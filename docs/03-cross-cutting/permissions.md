@@ -8,7 +8,7 @@ Nguồn sự thật duy nhất cho "role nào làm được gì". Mỗi module d
 |---|---|---|
 | `ADMIN` | Quản trị viên | Toàn quyền |
 | `QUAN_LY_KHO` | Quản lý kho | Quản lý danh mục kho/hàng, duyệt các thao tác khó hoàn tác, xem báo cáo |
-| `NHAN_VIEN_KHO` | Nhân viên kho | Lập/xác nhận phiếu nhập–xuất, chuyển vị trí, tra cứu |
+| `NHAN_VIEN_KHO` | Nhân viên kho | Lập phiếu nhập–xuất (nháp), xuất kho, chuyển vị trí, tra cứu; xác nhận nhập kho do quản lý |
 | `KE_TOAN` | Kế toán | Công nợ; xem chứng từ và báo cáo; không thao tác tồn kho |
 
 Role cố định trong code; seed tạo 4 role này ([seed-strategy.md](../01-data/seed-strategy.md)). Muốn role tùy biến/permission động → ngoài phạm vi phase 1 (câu hỏi mở).
@@ -87,13 +87,21 @@ Cột: **A** = `ADMIN`, **Q** = `QUAN_LY_KHO`, **N** = `NHAN_VIEN_KHO`, **K** = 
 
 ✓* `KE_TOAN` xem tồn kho và sổ biến động nhưng không dùng `goi-y-xuat` (vô nghĩa với kế toán) — cho phép đọc để đơn giản; không rủi ro.
 
+### 3.4b Danh mục kinh doanh
+
+| Hành động | A | Q | N | K |
+|---|---|---|---|---|
+| `nhom-doi-tac`, `dieu-khoan-thanh-toan`, `nhan-vien-kinh-doanh` đọc | ✓ | ✓ | ✓ | ✓ |
+| các mục trên tạo / sửa | ✓ | ✓ | ✗ | ✓ |
+| các mục trên xóa | ✓ | ✗ | ✗ | ✗ |
+
 ### 3.5 Chứng từ
 
 | Hành động | A | Q | N | K |
 |---|---|---|---|---|
 | `phieu-nhap-hang.list/read` | ✓ | ✓ | ✓ | ✓ |
 | `phieu-nhap-hang.create/update/delete-nháp` | ✓ | ✓ | ✓ | ✗ |
-| `phieu-nhap-hang.xac-nhan` | ✓ | ✓ | ✓ | ✗ |
+| `phieu-nhap-hang.xac-nhan` | ✓ | ✓ | ✗ | ✗ |
 | `phieu-nhap-hang.huy` (phiếu nháp) | ✓ | ✓ | ✓ | ✗ |
 | `phieu-nhap-hang.huy` (phiếu đã nhập kho) | ✓ | ✓ | ✗ | ✗ |
 | `phieu-xuat-hang.list/read` | ✓ | ✓ | ✓ | ✓ |
@@ -105,6 +113,14 @@ Cột: **A** = `ADMIN`, **Q** = `QUAN_LY_KHO`, **N** = `NHAN_VIEN_KHO`, **K** = 
 | `phieu-thu-cong-no.list/read` | ✓ | ✓ | ✗ | ✓ |
 | `phieu-thu-cong-no.create` | ✓ | ✗ | ✗ | ✓ |
 | `phieu-thu-cong-no.huy` | ✓ | ✗ | ✗ | ✓ |
+| `phieu-thu-cong-no.thu-gop` | ✓ | ✗ | ✗ | ✓ |
+| `doi-tru-chung-tu.list/read` | ✓ | ✓ | ✗ | ✓ |
+| `doi-tru-chung-tu.create`, `bo` | ✓ | ✗ | ✗ | ✓ |
+| `tra-lai-hang-ban.list/read` | ✓ | ✓ | ✓ | ✓ |
+| `tra-lai-hang-ban.create/update/delete-nháp` | ✓ | ✓ | ✓ | ✗ |
+| `tra-lai-hang-ban.xac-nhan` | ✓ | ✓ | ✗ | ✗ |
+| `tra-lai-hang-ban.huy` (phiếu nháp) | ✓ | ✓ | ✓ | ✗ |
+| `tra-lai-hang-ban.huy` (đã nhập lại kho) | ✓ | ✓ | ✗ | ✗ |
 | `khach-hang.cong-no` (xem công nợ khách) | ✓ | ✓ | ✗ | ✓ |
 | `phieu-thanh-toan.list/read` | ✓ | ✓ | ✗ | ✓ |
 | `phieu-thanh-toan.create`, `huy` | ✓ | ✗ | ✗ | ✓ |
