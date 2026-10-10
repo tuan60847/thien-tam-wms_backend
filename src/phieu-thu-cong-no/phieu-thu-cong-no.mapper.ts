@@ -24,7 +24,12 @@ export const phieuThuInclude = {
     },
   },
   doiTrus: {
-    orderBy: { createdAt: 'asc' },
+    // Allocations of one receipt share a timestamp, so fall back to the oldest order first.
+    orderBy: [
+      { createdAt: 'asc' },
+      { phieuXuatHang: { ngayXuatKho: 'asc' } },
+      { phieuXuatHang: { maPhieuXuatHang: 'asc' } },
+    ],
     include: {
       phieuXuatHang: { select: { id: true, maPhieuXuatHang: true } },
     },
@@ -41,6 +46,8 @@ export function toPhieuThuResponse(row: PhieuThuRow): PhieuThuResponseDto {
   const applied = row.doiTrus
     .filter((d) => !d.daBoDoiTru)
     .reduce((sum, d) => sum.plus(d.soTienDoiTru), ZERO);
+  // Cash received plus the payment discount is what the receipt can take off debts.
+  const giamNo = row.soTien.plus(row.tienChietKhau);
   return {
     id: row.id,
     maPhieuThuCongNo: row.maPhieuThuCongNo,
@@ -50,6 +57,9 @@ export function toPhieuThuResponse(row: PhieuThuRow): PhieuThuResponseDto {
     ghiChu: row.ghiChu,
     nguoiNop: row.nguoiNop,
     ngayGhiSoQuy: row.ngayGhiSoQuy ? formatDateOnly(row.ngayGhiSoQuy) : null,
+    tyLeChietKhau: moneyString(row.tyLeChietKhau),
+    tienChietKhau: moneyString(row.tienChietKhau),
+    tongGiamNo: moneyString(giamNo),
     nhanVienBanHang: row.nhanVienBanHang,
     phieuXuat: {
       id: order.id,
@@ -66,7 +76,7 @@ export function toPhieuThuResponse(row: PhieuThuRow): PhieuThuResponseDto {
       soTien: moneyString(d.soTienDoiTru),
       daBo: d.daBoDoiTru,
     })),
-    soTienChuaDoiTru: moneyString(row.huyAt ? ZERO : row.soTien.minus(applied)),
+    soTienChuaDoiTru: moneyString(row.huyAt ? ZERO : giamNo.minus(applied)),
     huyAt: row.huyAt,
     huyBoi: row.huyBoi,
     lyDoHuy: row.lyDoHuy,

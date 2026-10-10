@@ -124,8 +124,8 @@ describe('Phiếu xuất: chiết khấu, thuế, hạn nợ và hạn mức (e2
     extra: Record<string, unknown> = {},
   ) =>
     (await create(khachHangId, chiTiet, extra).expect(201)).body as OrderBody;
-  const issue = (id: string) =>
-    http().post(`/api/v1/phieu-xuat-hang/${id}/xuat-kho`).set(as('kho'));
+  const issue = (id: string, user = 'kho') =>
+    http().post(`/api/v1/phieu-xuat-hang/${id}/xuat-kho`).set(as(user));
   const getOrder = async (id: string) =>
     (
       await http()
@@ -413,6 +413,58 @@ describe('Phiếu xuất: chiết khấu, thuế, hạn nợ và hạn mức (e2
         line(lot, { soLuong: 2, tyLeChietKhau: '20' }),
       ]);
       expect(fits.tongTien).toBe('216000.00');
+    });
+
+    it('quản lý ghi đè hạn mức kèm lý do (có nhật ký); nhân viên kho không ghi đè được; xuất kho cũng vậy', async () => {
+      const khach = await newCustomer({ soNoToiDa: '300000' });
+      const lot = await stockLot(10);
+      const first = await created(khach.id, [line(lot, { soLuong: 2 })]);
+      await issue(first.id).expect(200); // outstanding 270000
+
+      const body = (extra: Record<string, unknown> = {}) => ({
+        khachHangId: khach.id,
+        chiTiet: [line(lot, { soLuong: 2 })],
+        ...extra,
+      });
+      const reason = { vuotHanMucLyDo: 'Khách quen, hứa trả tuần sau' };
+      // Warehouse staff cannot, even with a reason; a manager needs a reason.
+      await http()
+        .post('/api/v1/phieu-xuat-hang')
+        .set(as('kho'))
+        .send(body(reason))
+        .expect(422);
+      await http()
+        .post('/api/v1/phieu-xuat-hang')
+        .set(as('quanly'))
+        .send(body())
+        .expect(422);
+      const over = (
+        await http()
+          .post('/api/v1/phieu-xuat-hang')
+          .set(as('quanly'))
+          .send(body(reason))
+          .expect(201)
+      ).body as Id;
+      const log = await prisma.nhatKyHeThong.findFirst({
+        where: {
+          hanhDong: 'phieu_xuat.credit_limit_override',
+          doiTuongId: over.id,
+        },
+      });
+      expect(log?.lyDo).toBe(reason.vuotHanMucLyDo);
+
+      // Issuing re-checks the limit: same rules.
+      await issue(over.id, 'kho').send(reason).expect(422);
+      await issue(over.id, 'quanly').expect(422);
+      await issue(over.id, 'quanly').send(reason).expect(200);
+      expect(
+        await prisma.nhatKyHeThong.count({
+          where: {
+            hanhDong: 'phieu_xuat.credit_limit_override',
+            doiTuongId: over.id,
+          },
+        }),
+      ).toBe(2);
     });
 
     it('thu tiền làm giảm công nợ nên lập thêm phiếu được; hạn mức 0 = không giới hạn', async () => {

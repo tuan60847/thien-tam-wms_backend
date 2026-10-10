@@ -3,6 +3,7 @@ import {
   ageBucket,
   assertAmountWithinDebt,
   assertReceiptDate,
+  paymentDiscount,
 } from './phieu-thu-cong-no.rules.js';
 
 const d = (v: string) => new Prisma.Decimal(v);
@@ -45,5 +46,36 @@ describe('phieu-thu-cong-no rules', () => {
     [400, '>90'],
   ])('ageBucket(%i) = %s (biên 30/31, 60/61, 90/91)', (days, bucket) => {
     expect(ageBucket(days)).toBe(bucket);
+  });
+});
+
+describe('paymentDiscount', () => {
+  it('không gửi gì = không chiết khấu', () => {
+    const r = paymentDiscount(d('100000'), undefined, undefined);
+    expect(r.tienChietKhau.toFixed(2)).toBe('0.00');
+    expect(r.tyLeChietKhau.toFixed(2)).toBe('0.00');
+  });
+
+  it('theo %: tính trên số tiền thu, làm tròn HALF_UP 2 chữ số', () => {
+    expect(
+      paymentDiscount(d('100000'), '2', undefined).tienChietKhau.toFixed(2),
+    ).toBe('2000.00');
+    expect(
+      paymentDiscount(d('333.33'), '1.5', undefined).tienChietKhau.toFixed(2),
+    ).toBe('5.00');
+  });
+
+  it('theo số tiền: suy ra tỷ lệ, tối đa bằng số tiền thu', () => {
+    const r = paymentDiscount(d('200000'), undefined, '5000');
+    expect(r.tienChietKhau.toFixed(2)).toBe('5000.00');
+    expect(r.tyLeChietKhau.toFixed(2)).toBe('2.50');
+    expect(
+      paymentDiscount(d('100'), undefined, '100').tyLeChietKhau.toFixed(2),
+    ).toBe('100.00');
+    expect(() => paymentDiscount(d('100'), undefined, '100.01')).toThrow();
+  });
+
+  it('gửi cả tỷ lệ và số tiền bị từ chối', () => {
+    expect(() => paymentDiscount(d('100'), '1', '1')).toThrow();
   });
 });

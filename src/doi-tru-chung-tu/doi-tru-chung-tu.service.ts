@@ -242,14 +242,17 @@ export class DoiTruChungTuService {
     const [receipt, applied] = await Promise.all([
       tx.phieuThuCongNo.findUniqueOrThrow({
         where: { id: phieuThuCongNoId },
-        select: { soTien: true },
+        select: { soTien: true, tienChietKhau: true },
       }),
       tx.doiTruChungTu.aggregate({
         where: { phieuThuCongNoId, daBoDoiTru: false },
         _sum: { soTienDoiTru: true },
       }),
     ]);
-    return receipt.soTien.minus(applied._sum.soTienDoiTru ?? ZERO);
+    // Cash plus the payment discount is what the receipt can settle.
+    return receipt.soTien
+      .plus(receipt.tienChietKhau)
+      .minus(applied._sum.soTienDoiTru ?? ZERO);
   }
 
   // Records the application of `soTien` of a (new) receipt to an order.

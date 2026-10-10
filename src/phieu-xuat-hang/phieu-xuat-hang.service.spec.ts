@@ -158,7 +158,7 @@ describe('PhieuXuatHangService', () => {
   describe('issue', () => {
     it('trừ tồn từng dòng theo thứ tự cố định, loai xuat_kho, thamChieu đúng, set ngày/người xuất', async () => {
       const { service, decrease, tx } = setup({ lines: [line(2), line(1)] });
-      await service.issue('p1', admin);
+      await service.issue('p1', {}, admin);
       expect(tx.phieuXuatHang.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'p1', trangThai: 'cho_xu_ly' },
@@ -186,12 +186,12 @@ describe('PhieuXuatHangService', () => {
 
     it('không còn là nháp → INVALID_STATE; không tồn tại → NOT_FOUND; không trừ tồn', async () => {
       const done = setup({ state: 'da_xuat_kho' });
-      await expect(done.service.issue('p1', admin)).rejects.toMatchObject({
+      await expect(done.service.issue('p1', {}, admin)).rejects.toMatchObject({
         code: 'PHIEU_XUAT_INVALID_STATE',
       });
       expect(done.decrease).not.toHaveBeenCalled();
       await expect(
-        setup({ state: null }).service.issue('p1', admin),
+        setup({ state: null }).service.issue('p1', {}, admin),
       ).rejects.toMatchObject({
         code: 'PHIEU_XUAT_NOT_FOUND',
       });
@@ -199,7 +199,7 @@ describe('PhieuXuatHangService', () => {
 
     it('phiếu rỗng → PHIEU_XUAT_EMPTY', async () => {
       await expect(
-        setup({ lines: [] }).service.issue('p1', admin),
+        setup({ lines: [] }).service.issue('p1', {}, admin),
       ).rejects.toMatchObject({
         code: 'PHIEU_XUAT_EMPTY',
       });
@@ -207,24 +207,24 @@ describe('PhieuXuatHangService', () => {
 
     it('kiểm lại khách và hạn dùng từng lô khi xuất; lỗi thì không trừ tồn', async () => {
       const ok = setup();
-      await ok.service.issue('p1', admin);
+      await ok.service.issue('p1', {}, admin);
       expect(ok.assertCanBuy).toHaveBeenCalledOnce();
       expect(ok.assertIssuable).toHaveBeenCalledTimes(2);
 
       const expired = new AppException('SO_LO_EXPIRED');
       const bad = setup({ issueError: expired });
-      await expect(bad.service.issue('p1', admin)).rejects.toBe(expired);
+      await expect(bad.service.issue('p1', {}, admin)).rejects.toBe(expired);
       expect(bad.decrease).not.toHaveBeenCalled();
 
       const inactive = new AppException('KHACH_HANG_INACTIVE');
       await expect(
-        setup({ customerError: inactive }).service.issue('p1', admin),
+        setup({ customerError: inactive }).service.issue('p1', {}, admin),
       ).rejects.toBe(inactive);
     });
 
     it('đặt hạn thanh toán = hôm nay + số ngày được nợ khi phiếu chưa có hạn', async () => {
       const { service, tx } = setup({ soNgayDuocNo: 30 });
-      await service.issue('p1', admin);
+      await service.issue('p1', {}, admin);
       expect(tx.phieuXuatHang.update).toHaveBeenCalledWith({
         where: { id: 'p1' },
         data: { hanThanhToan: new Date('2026-11-05T00:00:00Z') },
@@ -236,34 +236,34 @@ describe('PhieuXuatHangService', () => {
         soNgayDuocNo: 30,
         hanThanhToan: new Date('2026-12-01T00:00:00Z'),
       });
-      await manual.service.issue('p1', admin);
+      await manual.service.issue('p1', {}, admin);
       expect(manual.tx.phieuXuatHang.update).not.toHaveBeenCalled();
       const none = setup({ soNgayDuocNo: null });
-      await none.service.issue('p1', admin);
+      await none.service.issue('p1', {}, admin);
       expect(none.tx.phieuXuatHang.update).not.toHaveBeenCalled();
       const zero = setup({ soNgayDuocNo: 0 });
-      await zero.service.issue('p1', admin);
+      await zero.service.issue('p1', {}, admin);
       expect(zero.tx.phieuXuatHang.update).not.toHaveBeenCalled();
     });
 
     it('kiểm lại hạn mức nợ khi xuất kho: vượt → KHACH_HANG_CREDIT_EXCEEDED, không trừ tồn', async () => {
       const over = setup({ creditLimit: '100000', outstanding: '100000.01' });
-      await expect(over.service.issue('p1', admin)).rejects.toMatchObject({
+      await expect(over.service.issue('p1', {}, admin)).rejects.toMatchObject({
         code: 'KHACH_HANG_CREDIT_EXCEEDED',
       });
       expect(over.decrease).not.toHaveBeenCalled();
       const exact = setup({ creditLimit: '100000', outstanding: '100000' });
-      await exact.service.issue('p1', admin);
+      await exact.service.issue('p1', {}, admin);
       expect(exact.decrease).toHaveBeenCalledTimes(2);
       const unlimited = setup({ creditLimit: '0', outstanding: '999999999' });
-      await unlimited.service.issue('p1', admin);
+      await unlimited.service.issue('p1', {}, admin);
       expect(unlimited.tx.phieuXuatHang.findMany).not.toHaveBeenCalled();
     });
 
     it('thiếu tồn ở một dòng: lỗi lan ra (giao dịch rollback)', async () => {
       const { service, decrease } = setup();
       decrease.mockRejectedValueOnce(new AppException('TON_KHO_INSUFFICIENT'));
-      await expect(service.issue('p1', admin)).rejects.toMatchObject({
+      await expect(service.issue('p1', {}, admin)).rejects.toMatchObject({
         code: 'TON_KHO_INSUFFICIENT',
       });
     });
@@ -450,7 +450,7 @@ describe('PhieuXuatHangService', () => {
 
   it('assertUsable không được gọi khi phiếu không có xe', async () => {
     const { service, assertUsable } = setup();
-    await service.issue('p1', admin);
+    await service.issue('p1', {}, admin);
     expect(assertUsable).not.toHaveBeenCalled();
   });
 });

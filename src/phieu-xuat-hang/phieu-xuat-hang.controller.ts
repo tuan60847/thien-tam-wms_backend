@@ -20,9 +20,11 @@ import { HuyPhieuDto } from '../common/dto/huy-phieu.dto.js';
 import type { PagedResponse } from '../common/pagination/paginate.js';
 import {
   CreatePhieuXuatDto,
+  DoiTinhTrangNoDto,
   GiaoHangDto,
   QueryPhieuXuatDto,
   UpdatePhieuXuatDto,
+  XuatKhoDto,
   type PhieuXuatListItemDto,
   type PhieuXuatResponseDto,
 } from './dto/phieu-xuat.dto.js';
@@ -91,12 +93,16 @@ export class PhieuXuatHangController {
   @Post(':id/xuat-kho')
   @HttpCode(HttpStatus.OK)
   @Roles(...WRITERS)
-  @ApiOperation({ summary: 'Xuất kho: trừ tồn, phát sinh công nợ' })
+  @ApiOperation({
+    summary:
+      'Xuất kho: trừ tồn, phát sinh công nợ (thu_tien_ngay: tự lập phiếu thu)',
+  })
   issue(
     @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: XuatKhoDto,
     @CurrentUser() actor: AuthenticatedUser,
   ): Promise<PhieuXuatResponseDto> {
-    return this.service.issue(id, actor);
+    return this.service.issue(id, dto, actor);
   }
 
   @Post(':id/giao-hang')
@@ -109,6 +115,19 @@ export class PhieuXuatHangController {
     @CurrentUser() actor: AuthenticatedUser,
   ): Promise<PhieuXuatResponseDto> {
     return this.service.deliver(id, dto, actor);
+  }
+
+  @Patch(':id/tinh-trang-no')
+  @Roles(ROLE.ADMIN, ROLE.KE_TOAN)
+  @ApiOperation({
+    summary: 'Đổi tình trạng nợ (bình thường / khó đòi / không thể đòi)',
+  })
+  setDebtStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: DoiTinhTrangNoDto,
+    @CurrentUser() actor: AuthenticatedUser,
+  ): Promise<PhieuXuatResponseDto> {
+    return this.service.setDebtStatus(id, dto, actor);
   }
 
   // NHAN_VIEN_KHO may cancel pending orders only; the service rejects issued ones.

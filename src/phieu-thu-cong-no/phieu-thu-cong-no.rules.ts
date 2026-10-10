@@ -1,7 +1,7 @@
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { diffDays } from '../common/clock/vn-date.js';
 import { AppException } from '../common/errors/app.exception.js';
-import { moneyString } from '../common/money.js';
+import { moneyString, percentOf, ZERO } from '../common/money.js';
 
 export type NhomTuoiNo = '0-30' | '31-60' | '61-90' | '>90';
 
@@ -52,4 +52,55 @@ export function overdueDays(
   }
   const days = diffDays(today, hanThanhToan);
   return days > 0 ? days : null;
+}
+
+export interface PaymentDiscount {
+  tyLeChietKhau: Prisma.Decimal;
+  tienChietKhau: Prisma.Decimal;
+}
+
+// Early-payment discount granted on top of the money received: either a percentage of the
+// amount paid or a fixed amount, never both. It is never more than the amount paid.
+export function paymentDiscount(
+  soTien: Prisma.Decimal,
+  tyLe: string | undefined,
+  tien: string | undefined,
+): PaymentDiscount {
+  if (tyLe !== undefined && tien !== undefined) {
+    throw new AppException('VALIDATION_FAILED', {
+      details: [
+        {
+          field: 'tienChietKhau',
+          messages: [
+            'Chỉ gửi tỷ lệ chiết khấu hoặc số tiền chiết khấu, không gửi cả hai',
+          ],
+        },
+      ],
+    });
+  }
+  if (tien !== undefined) {
+    const tienChietKhau = new Prisma.Decimal(tien);
+    if (tienChietKhau.gt(soTien)) {
+      throw new AppException('VALIDATION_FAILED', {
+        details: [
+          {
+            field: 'tienChietKhau',
+            messages: ['Chiết khấu không được lớn hơn số tiền thu'],
+          },
+        ],
+      });
+    }
+    // The percentage is only informative here; it is derived from the amount.
+    return {
+      tienChietKhau,
+      tyLeChietKhau: soTien.gt(0)
+        ? tienChietKhau
+            .mul(100)
+            .div(soTien)
+            .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP)
+        : ZERO,
+    };
+  }
+  const tyLeChietKhau = new Prisma.Decimal(tyLe ?? 0);
+  return { tyLeChietKhau, tienChietKhau: percentOf(soTien, tyLeChietKhau) };
 }

@@ -149,6 +149,17 @@ export class PhanBoLoDto {
 }
 
 export class ChuyenPhieuXuatDto {
+  @ApiPropertyOptional({
+    description:
+      'Lý do vượt hạn mức nợ của khách: chỉ ADMIN/QUAN_LY_KHO được phép',
+  })
+  @IsOptional()
+  @Trim()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  vuotHanMucLyDo?: string;
+
   @ApiProperty({
     type: [PhanBoLoDto],
     description: 'Chọn lô/vị trí xuất cho từng dòng báo giá (phủ đủ số lượng)',

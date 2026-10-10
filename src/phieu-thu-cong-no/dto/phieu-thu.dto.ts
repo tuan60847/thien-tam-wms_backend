@@ -7,6 +7,7 @@ import {
   IsEnum,
   IsOptional,
   IsString,
+  Matches,
   IsUUID,
   MaxLength,
   ValidateNested,
@@ -15,10 +16,12 @@ import { Type } from 'class-transformer';
 import { PaginationQueryDto } from '../../common/pagination/pagination-query.dto.js';
 import { ToBoolean, Trim } from '../../common/transformers.js';
 import { IsDateOnly } from '../../common/validators/is-date-only.js';
-import { IsPositiveMoney } from '../../common/validators/is-money.js';
+import { IsMoney, IsPositiveMoney } from '../../common/validators/is-money.js';
 
 export const PHUONG_THUC = ['tien_mat', 'chuyen_khoan'] as const;
 export type PhuongThuc = (typeof PHUONG_THUC)[number];
+
+const PERCENT = /^(100(\.0{1,2})?|\d{1,2}(\.\d{1,2})?)$/;
 
 export class CreatePhieuThuDto {
   @ApiProperty() @IsUUID() phieuXuatHangId!: string;
@@ -61,6 +64,24 @@ export class CreatePhieuThuDto {
   @IsOptional()
   @IsUUID()
   nhanVienBanHangId?: string | null;
+
+  @ApiPropertyOptional({
+    example: '2.00',
+    description:
+      'Chiết khấu thanh toán (%) trên số tiền thu, cộng thêm vào số trừ nợ; không gửi cùng tienChietKhau',
+  })
+  @IsOptional()
+  @Matches(PERCENT, { message: 'Tỷ lệ chiết khấu phải từ 0 đến 100' })
+  tyLeChietKhau?: string;
+
+  @ApiPropertyOptional({
+    example: '6000.00',
+    description:
+      'Số tiền chiết khấu thanh toán, cộng thêm vào số trừ nợ; không lớn hơn soTien',
+  })
+  @IsOptional()
+  @IsMoney()
+  tienChietKhau?: string;
 }
 
 export class PhanBoThuDto {
@@ -182,6 +203,14 @@ export class PhieuThuResponseDto {
   @ApiProperty({ nullable: true }) ghiChu!: string | null;
   @ApiProperty({ nullable: true }) nguoiNop!: string | null;
   @ApiProperty({ nullable: true }) ngayGhiSoQuy!: string | null;
+  @ApiProperty({ example: '0.00' }) tyLeChietKhau!: string;
+  @ApiProperty({ example: '0.00', description: 'Chiết khấu thanh toán' })
+  tienChietKhau!: string;
+  @ApiProperty({
+    example: '300000.00',
+    description: 'Số nợ được giảm = soTien + tienChietKhau',
+  })
+  tongGiamNo!: string;
   @ApiProperty({ nullable: true }) nhanVienBanHang!: {
     id: string;
     maNV: string;

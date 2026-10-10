@@ -4,7 +4,7 @@ Bảng phẳng mọi endpoint của hệ thống: method, path, xác thực, rol
 
 Quy ước: `mọi role` = mọi người dùng đã đăng nhập; `Public` = không cần token; prefix `/api/v1` (áp dụng sau M0). Cột **MS** = milestone triển khai ([roadmap.md](../00-overview/roadmap.md)). Cột **Doc** trỏ tới file nguồn.
 
-Tổng số endpoint: **154**. Bảng này được đối chiếu tự động với code và ma trận role bởi `test/catalog-permissions.e2e-spec.ts` (thêm hoặc đổi endpoint mà không sửa bảng này thì test fail).
+Tổng số endpoint: **155**. Bảng này được đối chiếu tự động với code và ma trận role bởi `test/catalog-permissions.e2e-spec.ts` (thêm hoặc đổi endpoint mà không sửa bảng này thì test fail).
 
 ## Auth — [auth](../02-modules/auth.md)
 
@@ -165,8 +165,9 @@ Tổng số endpoint: **154**. Bảng này được đối chiếu tự động 
 | POST | `/api/v1/phieu-xuat-hang` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Lập phiếu xuất (chờ xử lý) | M6 |
 | PATCH | `/api/v1/phieu-xuat-hang/:id` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Sửa phiếu chờ xử lý (thay toàn bộ dòng nếu gửi `chiTiet`) | M6 |
 | DELETE | `/api/v1/phieu-xuat-hang/:id` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Xóa phiếu chờ xử lý | M6 |
-| POST | `/api/v1/phieu-xuat-hang/:id/xuat-kho` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Xuất kho: trừ tồn, phát sinh công nợ | M6 |
+| POST | `/api/v1/phieu-xuat-hang/:id/xuat-kho` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Xuất kho: trừ tồn, phát sinh công nợ; phiếu `thu_tien_ngay` tự lập phiếu thu (body tùy chọn `phuongThucThu`, mặc định tiền mặt) | M6 |
 | POST | `/api/v1/phieu-xuat-hang/:id/giao-hang` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Xác nhận đã giao hàng | M6 |
+| PATCH | `/api/v1/phieu-xuat-hang/:id/tinh-trang-no` | JWT | ADMIN, KE_TOAN | Đổi tình trạng nợ của phiếu đã xuất kho (ghi nhật ký) | M6 |
 | POST | `/api/v1/phieu-xuat-hang/:id/huy` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Hủy phiếu | M6 |
 
 ## Phiếu thu công nợ — [phieu-thu-cong-no](../02-modules/phieu-thu-cong-no.md)
@@ -175,7 +176,7 @@ Tổng số endpoint: **154**. Bảng này được đối chiếu tự động 
 |---|---|---|---|---|---|
 | GET | `/api/v1/phieu-thu-cong-no` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Danh sách phiếu thu | M6 |
 | GET | `/api/v1/phieu-thu-cong-no/:id` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Chi tiết | M6 |
-| POST | `/api/v1/phieu-thu-cong-no` | JWT | ADMIN, KE_TOAN | Lập phiếu thu | M6 |
+| POST | `/api/v1/phieu-thu-cong-no` | JWT | ADMIN, KE_TOAN | Lập phiếu thu (tùy chọn `tyLeChietKhau` hoặc `tienChietKhau`: chiết khấu thanh toán, cộng thêm vào số trừ nợ) | M6 |
 | POST | `/api/v1/phieu-thu-cong-no/:id/huy` | JWT | ADMIN, KE_TOAN | Hủy phiếu thu | M6 |
 | POST | `/api/v1/phieu-thu-cong-no/thu-gop` | JWT | ADMIN, KE_TOAN | Thu gộp: một phiếu thu cho nhiều phiếu xuất (phân bổ tay hoặc FIFO) | M9 |
 | GET | `/api/v1/khach-hang/:id/cong-no` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Công nợ phải thu của khách | M6 |

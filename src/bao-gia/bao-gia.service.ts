@@ -333,6 +333,7 @@ export class BaoGiaService {
         diaChiGiaoHang: dto.diaChiGiaoHang,
         ghiChu: dto.ghiChu ?? quote.ghiChu,
         thamChieu: quote.maBaoGia,
+        vuotHanMucLyDo: dto.vuotHanMucLyDo,
         chiTiet,
       },
       actor,

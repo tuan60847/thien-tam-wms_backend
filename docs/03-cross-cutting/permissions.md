@@ -110,6 +110,7 @@ Cột: **A** = `ADMIN`, **Q** = `QUAN_LY_KHO`, **N** = `NHAN_VIEN_KHO`, **K** = 
 | `phieu-xuat-hang.huy` (phiếu chờ xử lý) | ✓ | ✓ | ✓ | ✗ |
 | `phieu-xuat-hang.huy` (đã xuất kho) | ✓ | ✓ | ✗ | ✗ |
 | `phieu-xuat-hang` bán dưới `giaToiThieu` | ✓ | ✓ | ✗ | ✗ |
+| `phieu-xuat-hang.tinh-trang-no` | ✓ | ✗ | ✗ | ✓ |
 | `phieu-thu-cong-no.list/read` | ✓ | ✓ | ✗ | ✓ |
 | `phieu-thu-cong-no.create` | ✓ | ✗ | ✗ | ✓ |
 | `phieu-thu-cong-no.huy` | ✓ | ✗ | ✗ | ✓ |

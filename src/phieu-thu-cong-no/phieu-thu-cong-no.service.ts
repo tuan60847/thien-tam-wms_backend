@@ -46,6 +46,7 @@ import {
   overdueDays,
   assertAmountWithinDebt,
   assertReceiptDate,
+  paymentDiscount,
 } from './phieu-thu-cong-no.rules.js';
 
 interface LockedOrder {
@@ -184,11 +185,18 @@ export class PhieuThuCongNoService {
         throw new AppException('PHIEU_THU_ORDER_INVALID_STATE');
       }
       assertReceiptDate(ngayThanhToan, this.clock.today(), order.ngay_xuat_kho);
+      const discount = paymentDiscount(
+        soTien,
+        dto.tyLeChietKhau,
+        dto.tienChietKhau,
+      );
+      // The discount reduces the debt like cash does, but is not money received.
+      const giamNo = soTien.plus(discount.tienChietKhau);
       const { conNo } = await this.phieuXuat.getReceivableSummary(
         dto.phieuXuatHangId,
         tx,
       );
-      assertAmountWithinDebt(soTien, conNo);
+      assertAmountWithinDebt(giamNo, conNo);
       if (dto.nhanVienBanHangId) {
         await this.nhanVien.assertUsable(dto.nhanVienBanHangId, tx);
       }
@@ -208,6 +216,8 @@ export class PhieuThuCongNoService {
             dto.nhanVienBanHangId === undefined
               ? order.nhan_vien_ban_hang_id
               : dto.nhanVienBanHangId,
+          tyLeChietKhau: discount.tyLeChietKhau,
+          tienChietKhau: discount.tienChietKhau,
           phieuXuatHangId: dto.phieuXuatHangId,
           createdById: actor.id,
         },
@@ -216,7 +226,7 @@ export class PhieuThuCongNoService {
         {
           phieuThuCongNoId: created.id,
           phieuXuatHangId: dto.phieuXuatHangId,
-          soTien,
+          soTien: giamNo,
         },
         actor,
         tx,

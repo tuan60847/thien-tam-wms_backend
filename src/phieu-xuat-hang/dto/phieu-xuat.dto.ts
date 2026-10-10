@@ -35,6 +35,19 @@ export const TRANG_THAI_THU = [
   'da_thu_du',
 ] as const;
 
+export const TINH_TRANG_NO = [
+  'no_binh_thuong',
+  'no_kho_doi',
+  'no_khong_the_doi',
+] as const;
+export type TinhTrangNoValue = (typeof TINH_TRANG_NO)[number];
+
+export const HINH_THUC_THANH_TOAN = ['chua_thu_tien', 'thu_tien_ngay'] as const;
+export type HinhThucThanhToanValue = (typeof HINH_THUC_THANH_TOAN)[number];
+
+export const PHUONG_THUC_THU = ['tien_mat', 'chuyen_khoan'] as const;
+export type PhuongThucThuValue = (typeof PHUONG_THUC_THU)[number];
+
 export const MAX_LINES = 200;
 const PERCENT = /^(100(\.0{1,2})?|\d{1,2}(\.\d{1,2})?)$/;
 const INT_MAX = 2_147_483_647;
@@ -155,6 +168,15 @@ export class CreatePhieuXuatDto {
   @MaxLength(255)
   thamChieu?: string | null;
 
+  @ApiPropertyOptional({
+    enum: HINH_THUC_THANH_TOAN,
+    description:
+      'thu_tien_ngay: khi xuất kho tự lập phiếu thu đủ tổng phiếu, không phát sinh nợ',
+  })
+  @IsOptional()
+  @IsEnum(HINH_THUC_THANH_TOAN)
+  hinhThucThanhToan?: HinhThucThanhToanValue;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
@@ -189,6 +211,17 @@ export class CreatePhieuXuatDto {
   @IsUUID()
   baoGiaId?: string | null;
 
+  @ApiPropertyOptional({
+    description:
+      'Lý do vượt hạn mức nợ: chỉ ADMIN/QUAN_LY_KHO được phép; ghi vào nhật ký',
+  })
+  @IsOptional()
+  @Trim()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  vuotHanMucLyDo?: string;
+
   @ApiPropertyOptional({ type: [ChiTietXuatDto] })
   @IsOptional()
   @IsArray()
@@ -200,6 +233,29 @@ export class CreatePhieuXuatDto {
 
 // Sending chiTiet replaces every line.
 export class UpdatePhieuXuatDto extends PartialType(CreatePhieuXuatDto) {}
+
+export class XuatKhoDto {
+  @ApiPropertyOptional({
+    description:
+      'Lý do vượt hạn mức nợ: chỉ ADMIN/QUAN_LY_KHO được phép; ghi vào nhật ký',
+  })
+  @IsOptional()
+  @Trim()
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  vuotHanMucLyDo?: string;
+
+  @ApiPropertyOptional({
+    enum: PHUONG_THUC_THU,
+    default: 'tien_mat',
+    description:
+      'Chỉ dùng khi phiếu là thu_tien_ngay: phương thức của phiếu thu tự lập',
+  })
+  @IsOptional()
+  @IsEnum(PHUONG_THUC_THU)
+  phuongThucThu?: PhuongThucThuValue;
+}
 
 export class GiaoHangDto {
   @ApiPropertyOptional({ description: 'Mặc định hôm nay' })
@@ -213,6 +269,19 @@ export class GiaoHangDto {
   @IsString()
   @MaxLength(500)
   ghiChu?: string;
+}
+
+export class DoiTinhTrangNoDto {
+  @ApiProperty({ enum: TINH_TRANG_NO })
+  @IsEnum(TINH_TRANG_NO)
+  tinhTrangNo!: TinhTrangNoValue;
+
+  @ApiPropertyOptional({ description: 'Lý do đổi (ghi vào nhật ký)' })
+  @IsOptional()
+  @Trim()
+  @IsString()
+  @MaxLength(255)
+  lyDo?: string;
 }
 
 const toArray = ({ value }: { value: unknown }): unknown =>
@@ -232,6 +301,11 @@ export class QueryPhieuXuatDto extends PaginationQueryDto {
   @IsOptional()
   @IsEnum(TRANG_THAI_THU)
   trangThaiThu?: (typeof TRANG_THAI_THU)[number];
+
+  @ApiPropertyOptional({ enum: TINH_TRANG_NO })
+  @IsOptional()
+  @IsEnum(TINH_TRANG_NO)
+  tinhTrangNo?: TinhTrangNoValue;
 
   @ApiPropertyOptional() @IsOptional() @IsUUID() createdById?: string;
   @ApiPropertyOptional() @IsOptional() @IsUUID() hangHoaId?: string;
@@ -339,9 +413,9 @@ export class PhieuXuatResponseDto extends PhieuXuatListItemDto {
     isXeLanh: boolean;
   } | null;
   @ApiProperty({ nullable: true }) ngayGiaoThucTe!: string | null;
-  @ApiProperty({ enum: ['chua_thu_tien', 'thu_tien_ngay'] })
+  @ApiProperty({ enum: HINH_THUC_THANH_TOAN })
   hinhThucThanhToan!: string;
-  @ApiProperty({ enum: ['no_binh_thuong', 'no_kho_doi', 'no_khong_the_doi'] })
+  @ApiProperty({ enum: TINH_TRANG_NO })
   tinhTrangNo!: string;
   @ApiProperty({ nullable: true, type: Number }) soNgayDuocNo!: number | null;
   @ApiProperty({ nullable: true, example: '2026-11-06' }) hanThanhToan!:

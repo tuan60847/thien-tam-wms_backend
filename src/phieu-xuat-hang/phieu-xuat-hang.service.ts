@@ -44,11 +44,14 @@ import { toBaseQuantity } from '../ty-le-quy-doi/unit-conversion.js';
 import type {
   ChiTietXuatDto,
   CreatePhieuXuatDto,
+  DoiTinhTrangNoDto,
   GiaoHangDto,
   PhieuXuatListItemDto,
   PhieuXuatResponseDto,
   QueryPhieuXuatDto,
   UpdatePhieuXuatDto,
+  XuatKhoDto,
+  PhuongThucThuValue,
 } from './dto/phieu-xuat.dto.js';
 import {
   phieuXuatDetailInclude,
@@ -87,6 +90,12 @@ interface PreparedLine {
   tienThueGtgt: Prisma.Decimal;
   donGiaVon: Prisma.Decimal; // estimated from the product's purchase price
   tienGiaVon: Prisma.Decimal;
+}
+
+interface CreditOverride {
+  hanMuc: string;
+  congNoSauPhieu: string;
+  lyDo: string;
 }
 
 type BelowMinLine = {
@@ -141,6 +150,7 @@ export class PhieuXuatHangService {
       id: ids ? { in: ids } : undefined,
       khachHangId: query.khachHangId,
       trangThai: query.trangThai ? { in: query.trangThai } : undefined,
+      tinhTrangNo: query.tinhTrangNo,
       createdById: query.createdById,
       createdAt: dateRangeFilter(query.createdAtFrom, query.createdAtTo),
       ngayXuatKho: this.dateOnlyRange(
@@ -219,11 +229,16 @@ export class PhieuXuatHangService {
       this.khachHang.assertCanBuy(customer);
       const prepared = await this.prepareLines(dto.chiTiet ?? [], actor, tx);
       await this.assertVehicle(dto.phuongTienVanChuyenId, prepared.hasCold, tx);
-      await this.assertCreditLimit(
-        customer,
-        computeNetTotals(prepared.lines).tongThanhToan,
-        tx,
-      );
+      // Paid on the spot: no debt is created, so the credit limit does not apply.
+      const exceeded =
+        dto.hinhThucThanhToan === 'thu_tien_ngay'
+          ? null
+          : await this.assertCreditLimit(
+              customer,
+              computeNetTotals(prepared.lines).tongThanhToan,
+              tx,
+              { actor, lyDo: dto.vuotHanMucLyDo },
+            );
 
       const ma = await this.codes.next(CODE.PHIEU_XUAT, tx);
       const created = await tx.phieuXuatHang.create({
@@ -246,6 +261,7 @@ export class PhieuXuatHangService {
         },
       });
       await this.recordBelowMin(created.id, prepared.belowMin, tx);
+      await this.recordCreditOverride(created.id, exceeded, tx);
       return created.id;
     });
     return this.findOne(id);
@@ -282,7 +298,21 @@ export class PhieuXuatHangService {
       } else {
         hasCold = await this.hasColdLines(id, tx);
       }
-      await this.assertCreditLimit(customer, await this.draftTotal(id, tx), tx);
+      const paidNow =
+        (dto.hinhThucThanhToan ?? current.hinhThucThanhToan) ===
+        'thu_tien_ngay';
+      if (!paidNow) {
+        await this.recordCreditOverride(
+          id,
+          await this.assertCreditLimit(
+            customer,
+            await this.draftTotal(id, tx),
+            tx,
+            { actor, lyDo: dto.vuotHanMucLyDo },
+          ),
+          tx,
+        );
+      }
       const phuongTienId =
         dto.phuongTienVanChuyenId === undefined
           ? current.phuongTienVanChuyenId
@@ -326,6 +356,7 @@ export class PhieuXuatHangService {
 
   async issue(
     id: string,
+    dto: XuatKhoDto,
     actor: AuthenticatedUser,
   ): Promise<PhieuXuatResponseDto> {
     await this.prisma.$transaction(async (tx) => {
@@ -367,8 +398,19 @@ export class PhieuXuatHangService {
         lines.some((l) => l.soLo.hangHoa.isCanGiuLanh),
         tx,
       );
-      // This order is already counted as issued (state updated above): +0 extra.
-      await this.assertCreditLimit(customer, ZERO, tx);
+      // Paid on the spot: no debt is created, so the credit limit does not apply.
+      const paidNow = phieu.hinhThucThanhToan === 'thu_tien_ngay';
+      if (!paidNow) {
+        // This order is already counted as issued (state updated above): +0 extra.
+        await this.recordCreditOverride(
+          id,
+          await this.assertCreditLimit(customer, ZERO, tx, {
+            actor,
+            lyDo: dto.vuotHanMucLyDo,
+          }),
+          tx,
+        );
+      }
       if (!phieu.hanThanhToan && phieu.soNgayDuocNo) {
         await tx.phieuXuatHang.update({
           where: { id },
@@ -396,12 +438,65 @@ export class PhieuXuatHangService {
           tx,
         );
       }
+      if (paidNow) {
+        await this.recordImmediatePayment(
+          phieu,
+          dto.phuongThucThu ?? 'tien_mat',
+          actor,
+          tx,
+        );
+      }
     });
     this.logger.info(
       { event: 'phieu_xuat.stock_out', phieuXuatId: id },
       'issue stocked out',
     );
     return this.findOne(id);
+  }
+
+  // "Thu tiền ngay": the receipt for the whole order is written together with the issue, so the
+  // order never shows as owing. Voiding that receipt is what allows cancelling the order.
+  private async recordImmediatePayment(
+    phieu: {
+      id: string;
+      nhanVienBanHangId: string | null;
+      chiTietPhieuXuatHangs: {
+        soLuong: number;
+        donGia: Prisma.Decimal;
+        tienChietKhau: Prisma.Decimal;
+        tienThueGtgt: Prisma.Decimal;
+      }[];
+    },
+    phuongThuc: PhuongThucThuValue,
+    actor: AuthenticatedUser,
+    tx: Prisma.TransactionClient,
+  ): Promise<void> {
+    const soTien = computeNetTotals(phieu.chiTietPhieuXuatHangs).tongThanhToan;
+    if (soTien.lte(0)) {
+      return;
+    }
+    const today = this.clock.today();
+    const receipt = await tx.phieuThuCongNo.create({
+      data: {
+        maPhieuThuCongNo: await this.codes.next(CODE.PHIEU_THU, tx),
+        soTien,
+        ngayThanhToan: today,
+        phuongThuc,
+        ghiChu: 'Thu tiền ngay khi xuất kho',
+        nhanVienBanHangId: phieu.nhanVienBanHangId,
+        phieuXuatHangId: phieu.id,
+        createdById: actor.id,
+      },
+    });
+    await tx.doiTruChungTu.create({
+      data: {
+        phieuThuCongNoId: receipt.id,
+        phieuXuatHangId: phieu.id,
+        soTienDoiTru: soTien,
+        ngayDoiTru: today,
+        createdById: actor.id,
+      },
+    });
   }
 
   async deliver(
@@ -445,6 +540,46 @@ export class PhieuXuatHangService {
       { event: 'phieu_xuat.delivered', phieuXuatId: id },
       'order delivered',
     );
+    return this.findOne(id);
+  }
+
+  // Debt classification (normal / hard to collect / uncollectable) of an issued order.
+  async setDebtStatus(
+    id: string,
+    dto: DoiTinhTrangNoDto,
+    actor: AuthenticatedUser,
+  ): Promise<PhieuXuatResponseDto> {
+    await this.prisma.$transaction(async (tx) => {
+      const locked = await tx.$queryRaw<
+        { trang_thai: TrangThaiPhieuXuat; tinh_trang_no: string }[]
+      >`SELECT trang_thai, tinh_trang_no FROM phieu_xuat_hang WHERE id = ${id} FOR UPDATE`;
+      const row = locked[0];
+      if (!row) {
+        throw new AppException('PHIEU_XUAT_NOT_FOUND');
+      }
+      // Only an order that created a receivable has a debt status to change.
+      if (row.trang_thai !== 'da_xuat_kho' && row.trang_thai !== 'da_giao') {
+        throw new AppException('PHIEU_XUAT_INVALID_STATE');
+      }
+      if (row.tinh_trang_no === dto.tinhTrangNo) {
+        return;
+      }
+      await tx.phieuXuatHang.update({
+        where: { id },
+        data: { tinhTrangNo: dto.tinhTrangNo, updatedById: actor.id },
+      });
+      await this.audit.record(
+        {
+          hanhDong: 'phieu_xuat.debt_status',
+          doiTuong: 'phieu_xuat_hang',
+          doiTuongId: id,
+          truoc: { tinhTrangNo: row.tinh_trang_no },
+          sau: { tinhTrangNo: dto.tinhTrangNo },
+          lyDo: dto.lyDo,
+        },
+        tx,
+      );
+    });
     return this.findOne(id);
   }
 
@@ -788,6 +923,7 @@ export class PhieuXuatHangService {
         dto.soNgayDuocNo ?? term?.soNgayDuocNo ?? customer.soNgayDuocNo,
       hanThanhToan: dto.hanThanhToan ? parseDateOnly(dto.hanThanhToan) : null,
       thamChieu: dto.thamChieu ?? null,
+      hinhThucThanhToan: dto.hinhThucThanhToan ?? 'chua_thu_tien',
       lapKemHoaDon: dto.lapKemHoaDon ?? false,
       dieuKhoanKhac: dto.dieuKhoanKhac ?? null,
       tenMatHangChung: dto.tenMatHangChung ?? null,
@@ -824,6 +960,7 @@ export class PhieuXuatHangService {
             ? null
             : parseDateOnly(dto.hanThanhToan),
       thamChieu: dto.thamChieu,
+      hinhThucThanhToan: dto.hinhThucThanhToan,
       lapKemHoaDon: dto.lapKemHoaDon,
       dieuKhoanKhac: dto.dieuKhoanKhac,
       tenMatHangChung: dto.tenMatHangChung,
@@ -890,25 +1027,50 @@ export class PhieuXuatHangService {
     customer: KhachHang,
     extra: Prisma.Decimal,
     tx: Prisma.TransactionClient,
-  ): Promise<void> {
+    override?: { actor: AuthenticatedUser; lyDo?: string },
+  ): Promise<CreditOverride | null> {
     if (customer.soNoToiDa.lte(0)) {
-      return;
+      return null;
     }
     const after = (await this.getOutstandingByCustomer(customer.id, tx)).plus(
       extra,
     );
-    if (after.gt(customer.soNoToiDa)) {
-      throw new AppException('KHACH_HANG_CREDIT_EXCEEDED', {
-        params: {
-          hanMuc: customer.soNoToiDa.toFixed(2),
-          sauPhieu: after.toFixed(2),
-        },
-        details: {
-          hanMuc: customer.soNoToiDa.toFixed(2),
-          congNoSauPhieu: after.toFixed(2),
-        },
-      });
+    if (after.lte(customer.soNoToiDa)) {
+      return null;
     }
+    const hanMuc = customer.soNoToiDa.toFixed(2);
+    const congNoSauPhieu = after.toFixed(2);
+    // Only managers may go over the limit, and only with a stated reason.
+    if (override?.lyDo && this.isManager(override.actor)) {
+      return { hanMuc, congNoSauPhieu, lyDo: override.lyDo };
+    }
+    throw new AppException('KHACH_HANG_CREDIT_EXCEEDED', {
+      params: { hanMuc, sauPhieu: congNoSauPhieu },
+      details: { hanMuc, congNoSauPhieu },
+    });
+  }
+
+  private async recordCreditOverride(
+    id: string,
+    exceeded: CreditOverride | null,
+    tx: Prisma.TransactionClient,
+  ): Promise<void> {
+    if (!exceeded) {
+      return;
+    }
+    await this.audit.record(
+      {
+        hanhDong: 'phieu_xuat.credit_limit_override',
+        doiTuong: 'phieu_xuat_hang',
+        doiTuongId: id,
+        sau: {
+          hanMuc: exceeded.hanMuc,
+          congNoSauPhieu: exceeded.congNoSauPhieu,
+        },
+        lyDo: exceeded.lyDo,
+      },
+      tx,
+    );
   }
 
   private async recordBelowMin(

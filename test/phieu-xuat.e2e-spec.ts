@@ -25,6 +25,7 @@ interface ErrorBody {
 }
 interface OrderBody {
   id: string;
+  hinhThucThanhToan: string;
   maPhieuXuatHang: string;
   trangThai: string;
   diaChiGiaoHang: string | null;
@@ -620,6 +621,204 @@ describe('Phiếu xuất hàng và thu công nợ (e2e)', () => {
       expect(((await deliver({})).body as ErrorBody).code).toBe(
         'PHIEU_XUAT_INVALID_STATE',
       );
+    });
+  });
+
+  describe('chiết khấu thanh toán', () => {
+    it('chiết khấu cộng thêm vào số trừ nợ; tiền thực thu không đổi; hủy phiếu thu hoàn lại', async () => {
+      const lot = await stockLot(vnDate(300), 2);
+      const order = await newOrder([line(lot)]); // 125000
+      await issue(order.id).expect(200);
+      const post = (body: Record<string, unknown>) =>
+        http()
+          .post('/api/v1/phieu-thu-cong-no')
+          .set(as('ketoan'))
+          .send({
+            phieuXuatHangId: order.id,
+            ngayThanhToan: vnDate(0),
+            phuongThuc: 'tien_mat',
+            ...body,
+          });
+
+      await post({
+        soTien: '100000',
+        tyLeChietKhau: '1',
+        tienChietKhau: '1',
+      }).expect(400);
+      await post({ soTien: '100', tienChietKhau: '100.01' }).expect(400);
+
+      const receipt = (
+        await post({ soTien: '100000', tyLeChietKhau: '20' }).expect(201)
+      ).body as ReceiptBody & {
+        soTien: string;
+        tienChietKhau: string;
+        tyLeChietKhau: string;
+        tongGiamNo: string;
+        soTienChuaDoiTru: string;
+      };
+      expect(receipt).toMatchObject({
+        soTien: '100000.00',
+        tyLeChietKhau: '20.00',
+        tienChietKhau: '20000.00',
+        tongGiamNo: '120000.00',
+        soTienChuaDoiTru: '0.00',
+      });
+      expect(receipt.phieuXuat.conNoSauKhiThu).toBe('5000.00');
+      expect((await getOrder(order.id)).daThu).toBe('120000.00');
+
+      // The discount counts against the debt: 5000.01 more is too much.
+      const over = await post({ soTien: '5000.01' }).expect(422);
+      expect((over.body as ErrorBody).code).toBe('PHIEU_THU_EXCEEDS_DEBT');
+      await post({ soTien: '4000', tienChietKhau: '1000' }).expect(201);
+      const settled = await getOrder(order.id);
+      expect(settled.conNo).toBe('0.00');
+      expect(settled.trangThaiThu).toBe('da_thu_du');
+
+      await http()
+        .post(`/api/v1/phieu-thu-cong-no/${receipt.id}/huy`)
+        .set(as('ketoan'))
+        .send({ lyDo: 'nhập nhầm' })
+        .expect(200);
+      expect((await getOrder(order.id)).conNo).toBe('120000.00');
+    });
+  });
+
+  describe('thu tiền ngay', () => {
+    it('xuất kho tự lập phiếu thu đủ tổng phiếu theo phương thức chọn; không phát sinh nợ', async () => {
+      const lot = await stockLot(vnDate(300), 2);
+      const order = await newOrder([line(lot)], {
+        hinhThucThanhToan: 'thu_tien_ngay',
+      });
+      expect(order.hinhThucThanhToan).toBe('thu_tien_ngay');
+      expect(
+        await prisma.phieuThuCongNo.count({
+          where: { phieuXuatHangId: order.id },
+        }),
+      ).toBe(0);
+
+      const issued = (
+        await issue(order.id)
+          .send({ phuongThucThu: 'chuyen_khoan' })
+          .expect(200)
+      ).body as OrderBody & { thuTien: { id: string; soTien: string }[] };
+      expect(issued.conNo).toBe('0.00');
+      expect(issued.trangThaiThu).toBe('da_thu_du');
+      expect(issued.thuTien).toHaveLength(1);
+      expect(issued.thuTien[0]!.soTien).toBe('125000.00');
+      const receipt = await prisma.phieuThuCongNo.findFirstOrThrow({
+        where: { phieuXuatHangId: order.id },
+      });
+      expect(receipt.phuongThuc).toBe('chuyen_khoan');
+      expect(receipt.createdById).not.toBeNull();
+
+      // The receipt must be voided first, like any other receipt.
+      const blocked = await cancel(order.id).expect(409);
+      expect((blocked.body as ErrorBody).code).toBe(
+        'PHIEU_XUAT_CANNOT_REVERSE',
+      );
+      await http()
+        .post(`/api/v1/phieu-thu-cong-no/${receipt.id}/huy`)
+        .set(as('ketoan'))
+        .send({ lyDo: 'khách trả lại tiền' })
+        .expect(200);
+      await cancel(order.id).expect(200);
+    });
+
+    it('mặc định tiền mặt; phiếu ghi nợ thường không tự lập phiếu thu', async () => {
+      const lot = await stockLot(vnDate(300), 2);
+      const paid = await newOrder([line(lot)], {
+        hinhThucThanhToan: 'thu_tien_ngay',
+      });
+      await issue(paid.id).expect(200);
+      const receipt = await prisma.phieuThuCongNo.findFirstOrThrow({
+        where: { phieuXuatHangId: paid.id },
+      });
+      expect(receipt.phuongThuc).toBe('tien_mat');
+
+      const credit = await newOrder([line(lot)]);
+      await issue(credit.id).expect(200);
+      expect(
+        await prisma.phieuThuCongNo.count({
+          where: { phieuXuatHangId: credit.id },
+        }),
+      ).toBe(0);
+      expect((await getOrder(credit.id)).conNo).toBe('125000.00');
+    });
+
+    it('không bị chặn bởi hạn mức nợ vì không phát sinh nợ', async () => {
+      const limited = await newKhach({
+        tenKH: 'Khách hạn mức nhỏ',
+        diaChi: 'x',
+        ngayHetHanGPKD: vnDate(400),
+        soNoToiDa: '1000',
+      });
+      const lot = await stockLot(vnDate(300), 2);
+      const order = (
+        await http()
+          .post('/api/v1/phieu-xuat-hang')
+          .set(as('quanly'))
+          .send({
+            khachHangId: limited.id,
+            hinhThucThanhToan: 'thu_tien_ngay',
+            chiTiet: [line(lot)],
+          })
+          .expect(201)
+      ).body as OrderBody;
+      await issue(order.id, 'quanly').expect(200);
+    });
+  });
+
+  describe('tình trạng nợ', () => {
+    it('kế toán đổi tình trạng nợ phiếu đã xuất kho, ghi nhật ký, lọc được; phiếu nháp thì không', async () => {
+      const lot = await stockLot(vnDate(300), 2);
+      const draft = await newOrder([line(lot)]);
+      const url = (id: string) => `/api/v1/phieu-xuat-hang/${id}/tinh-trang-no`;
+      const bad = await http()
+        .patch(url(draft.id))
+        .set(as('ketoan'))
+        .send({ tinhTrangNo: 'no_kho_doi' })
+        .expect(409);
+      expect((bad.body as ErrorBody).code).toBe('PHIEU_XUAT_INVALID_STATE');
+
+      await issue(draft.id).expect(200);
+      await http()
+        .patch(url(draft.id))
+        .set(as('kho'))
+        .send({ tinhTrangNo: 'no_kho_doi' })
+        .expect(403);
+      await http()
+        .patch(url(draft.id))
+        .set(as('ketoan'))
+        .send({ tinhTrangNo: 'sai' })
+        .expect(400);
+      const changed = (
+        await http()
+          .patch(url(draft.id))
+          .set(as('ketoan'))
+          .send({ tinhTrangNo: 'no_kho_doi', lyDo: 'Khách chây ì' })
+          .expect(200)
+      ).body as { tinhTrangNo: string };
+      expect(changed.tinhTrangNo).toBe('no_kho_doi');
+
+      const log = await prisma.nhatKyHeThong.findFirst({
+        where: { hanhDong: 'phieu_xuat.debt_status', doiTuongId: draft.id },
+      });
+      expect(log?.lyDo).toBe('Khách chây ì');
+
+      const filtered = (
+        await http()
+          .get('/api/v1/phieu-xuat-hang?tinhTrangNo=no_kho_doi')
+          .set(as('ketoan'))
+          .expect(200)
+      ).body as Page<Id>;
+      expect(filtered.items.map((o) => o.id)).toEqual([draft.id]);
+
+      await cancel(draft.id).expect(200);
+      await http()
+        .patch(url(draft.id))
+        .set(as('ketoan'))
+        .send({ tinhTrangNo: 'no_binh_thuong' })
+        .expect(409);
     });
   });
 

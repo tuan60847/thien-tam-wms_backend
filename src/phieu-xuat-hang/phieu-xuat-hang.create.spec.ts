@@ -453,6 +453,24 @@ describe('PhieuXuatHangService.create', () => {
       expect(created).toHaveLength(0);
     });
 
+    it('quản lý vượt hạn mức khi có lý do thì được; thiếu lý do hoặc là nhân viên kho thì vẫn bị chặn', async () => {
+      const over = () => limit('300000', ['30000.01']);
+      const withReason = dto({
+        vuotHanMucLyDo: 'Khách quen, hứa trả tuần sau',
+      });
+      await expect(
+        over().service.create(withReason, QL),
+      ).resolves.toBeDefined();
+      await expect(over().service.create(dto(), QL)).rejects.toMatchObject({
+        code: 'KHACH_HANG_CREDIT_EXCEEDED',
+      });
+      await expect(
+        over().service.create(withReason, NVK),
+      ).rejects.toMatchObject({
+        code: 'KHACH_HANG_CREDIT_EXCEEDED',
+      });
+    });
+
     it('chiết khấu làm phiếu nhỏ lại nên lọt hạn mức', async () => {
       const { service } = limit('250000', []);
       await expect(service.create(dto(), QL)).rejects.toMatchObject({

@@ -70,7 +70,7 @@ Tổng cộng **102** câu hỏi, gom từ mục 14 của từng module doc và 
 
 ## Hàng hóa (`hang-hoa`)
 
-30. **Q-HH-1** ⭐: Ba mức giá hiện tại (`giaNhap`, `giaHienThi`, `giaToiThieu`) tính theo đơn vị nào — hộp, hay đơn vị cơ bản? Đề xuất `donViTinhGia` (P-07). Xem thêm [schema-notes.md](01-data/schema-notes.md) §6.
+30. **Q-HH-1** ⭐ (đã triển khai theo đề xuất `donViTinhGia`): Ba mức giá hiện tại (`giaNhap`, `giaHienThi`, `giaToiThieu`) tính theo đơn vị nào — hộp, hay đơn vị cơ bản? Đề xuất `donViTinhGia` (P-07). Xem thêm [schema-notes.md](01-data/schema-notes.md) §6.
 31. **Q-HH-2**: `tenSP` có cần duy nhất (theo `tenSP + quyCach`)? Đề xuất không bắt buộc duy nhất, chỉ cảnh báo khi trùng cả `tenSP` và `quyCach`.
 32. **Q-HH-3**: Cần thêm các trường dược: hoạt chất, hàm lượng, dạng bào chế, nhà sản xuất, nước sản xuất, mã vạch/GTIN, thuế VAT?
 33. **Q-HH-4**: `soDangKy` bắt buộc cho mọi thuốc hay chỉ thuốc kê đơn/kiểm soát (đề xuất hiện tại)? Có cần kiểm tra định dạng số đăng ký (ví dụ `VD-xxxxx-xx`)?
@@ -93,7 +93,7 @@ Tổng cộng **102** câu hỏi, gom từ mục 14 của từng module doc và 
 
 ## Khách hàng (`khach-hang`)
 
-44. **Q-KH-1** ⭐ (đã triển khai mặc định: hạn mức `soNoToiDa` trên khách, 0 = không giới hạn, chặn khi lập và khi xuất kho phiếu xuất, chưa có cơ chế ghi đè; chờ xác nhận nghiệp vụ): Có kiểm soát **hạn mức công nợ** và/hoặc **số ngày nợ tối đa** theo khách không? (nếu có: thêm P-12, chặn khi vượt, ai được ghi đè?)
+44. **Q-KH-1** ⭐ (**ĐÃ CHỐT 2026-10-10**: hạn mức `soNoToiDa` trên khách, 0 = không giới hạn, chặn khi lập, sửa và xuất kho phiếu xuất; ADMIN/QUAN_LY_KHO ghi đè được bằng `vuotHanMucLyDo` và có nhật ký `phieu_xuat.credit_limit_override`; phiếu `thu_tien_ngay` không tính hạn mức): Có kiểm soát **hạn mức công nợ** và/hoặc **số ngày nợ tối đa** theo khách không? (nếu có: thêm P-12, chặn khi vượt, ai được ghi đè?)
 45. **Q-KH-2**: Khách chưa khai báo ngày hết hạn GPKD có được mua không? (đề xuất hiện tại: không; có thể đổi thành cảnh báo mềm).
 46. **Q-KH-3**: Khách hàng đã có mã riêng cần giữ khi import (thay vì `KH00001`)?
 47. **Q-KH-4**: Một nhà thuốc có nhiều chi nhánh/địa chỉ giao khác nhau không (cần bảng địa chỉ giao)?
@@ -124,7 +124,7 @@ Tổng cộng **102** câu hỏi, gom từ mục 14 của từng module doc và 
 
 ## Tồn kho (`ton-kho`)
 
-63. **Q-TK-1** ⭐: Có cần **giữ chỗ tồn** khi lập phiếu xuất (để hai phiếu nháp không cùng "ăn" một lượng tồn, hiển thị `tồn khả dụng = tồn − đã giữ`)? Đề xuất hiện tại: không, chỉ chặn lúc xuất kho. Nếu cần: thêm `TonKho.soLuongGiu` hoặc bảng `GiuCho`.
+63. **Q-TK-1** ⭐ (**ĐÃ CHỐT 2026-10-10**: không giữ chỗ tồn, chỉ chặn lúc xuất kho): Có cần **giữ chỗ tồn** khi lập phiếu xuất (để hai phiếu nháp không cùng "ăn" một lượng tồn, hiển thị `tồn khả dụng = tồn − đã giữ`)? Đề xuất hiện tại: không, chỉ chặn lúc xuất kho. Nếu cần: thêm `TonKho.soLuongGiu` hoặc bảng `GiuCho`.
 64. **Q-TK-2**: Quy trình **kiểm kê** thực tế: kiểm toàn bộ theo đợt (cần phiếu kiểm kê, khóa kho tạm thời) hay điều chỉnh lẻ từng lô như đề xuất?
 65. **Q-TK-3**: Hàng thường có được để ở vị trí cấp đông không (hiện cho phép)? Hàng lạnh có bắt buộc 100% ở vị trí cấp đông (hiện bắt buộc)?
 66. **Q-TK-4**: Hiển thị số lượng cho người dùng theo đơn vị nào — chỉ đơn vị cơ bản, hay quy đổi dạng "3 hộp 2 vỉ 5 viên"?
@@ -134,7 +134,7 @@ Tổng cộng **102** câu hỏi, gom từ mục 14 của từng module doc và 
 ## Phiếu nhập hàng (`phieu-nhap-hang`)
 
 69. **Q-NHAP-1**: Có cần **đơn đặt hàng (PO)** trước phiếu nhập, nhập hàng nhiều lần theo một PO? (hiện bỏ qua).
-70. **Q-NHAP-2** ⭐: Có cần bước **duyệt** giữa lập phiếu và xác nhận nhập kho (ví dụ phiếu giá trị lớn phải `QUAN_LY_KHO` xác nhận), hay NVK tự xác nhận như hiện đề xuất?
+70. **Q-NHAP-2** ⭐ (**ĐÃ CHỐT 2026-10-10**: giữ như hiện tại, NV kho lập, ADMIN/QL kho xác nhận nhập kho): Có cần bước **duyệt** giữa lập phiếu và xác nhận nhập kho (ví dụ phiếu giá trị lớn phải `QUAN_LY_KHO` xác nhận), hay NVK tự xác nhận như hiện đề xuất?
 71. **Q-NHAP-3**: Có cần **kiểm tra chất lượng / biệt trữ** khi nhận (hàng chưa kiểm không được xuất)? Nếu có, cần trạng thái lô/vị trí "biệt trữ".
 72. **Q-NHAP-4**: Có **VAT, chiết khấu, chi phí vận chuyển** trên phiếu nhập không? Công nợ phải trả tính theo tổng sau thuế?
 73. **Q-NHAP-5**: Phiếu nhập có bắt buộc đính kèm hóa đơn / COA của lô (liên quan file-upload)?
@@ -152,7 +152,7 @@ Tổng cộng **102** câu hỏi, gom từ mục 14 của từng module doc và 
 
 ## Phiếu xuất hàng (`phieu-xuat-hang`)
 
-82. **Q-XUAT-1** ⭐: Ai lập phiếu xuất trong thực tế — nhân viên kho hay một vai trò **bán hàng/kinh doanh** riêng (cần thêm role `NHAN_VIEN_BAN_HANG` và tách bước "lập đơn" khỏi "xuất kho")?
+82. **Q-XUAT-1** ⭐ (**ĐÃ CHỐT 2026-10-10**: nhân viên kho lập phiếu xuất, giữ 4 role cố định): Ai lập phiếu xuất trong thực tế — nhân viên kho hay một vai trò **bán hàng/kinh doanh** riêng (cần thêm role `NHAN_VIEN_BAN_HANG` và tách bước "lập đơn" khỏi "xuất kho")?
 83. **Q-XUAT-2**: Có cần **giữ chỗ tồn** ngay khi lập/duyệt phiếu (xem Q-TK-1) và bước **soạn hàng** trước khi xuất kho?
 84. **Q-XUAT-3**: **Trả hàng / đổi hàng** sau khi giao có cần ngay từ đầu không (hiện không hỗ trợ hủy phiếu đã giao)?
 85. **Q-XUAT-4**: Giá bán lấy từ đâu — nhập tay mỗi dòng (đề xuất), mặc định điền `giaHienThi`, hay có bảng giá theo nhóm khách/chiết khấu?
