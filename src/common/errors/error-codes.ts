@@ -379,6 +379,22 @@ const DEFINITIONS = {
     message: 'Không thể lưu hoặc đọc tệp, vui lòng thử lại',
   },
 
+  TAI_KHOAN_NGAN_HANG_NOT_FOUND: {
+    status: 404,
+    message: 'Không tìm thấy tài khoản ngân hàng',
+  },
+  TAI_KHOAN_NGAN_HANG_DUPLICATE: {
+    status: 409,
+    message: 'Số tài khoản này đã có tại ngân hàng đó',
+  },
+  DIA_DIEM_GIAO_HANG_NOT_FOUND: {
+    status: 404,
+    message: 'Không tìm thấy địa điểm giao hàng',
+  },
+  DIA_DIEM_GIAO_HANG_DUPLICATE: {
+    status: 409,
+    message: 'Địa điểm giao hàng này đã có',
+  },
   NHAN_VIEN_KD_NOT_FOUND: {
     status: 404,
     message: 'Không tìm thấy nhân viên kinh doanh',

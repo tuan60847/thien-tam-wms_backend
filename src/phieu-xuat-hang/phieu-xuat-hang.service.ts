@@ -235,7 +235,9 @@ export class PhieuXuatHangService {
             ? parseDateOnly(dto.ngayGiaoHang)
             : null,
           // Snapshot: later edits of the customer's address must not change this order.
-          diaChiGiaoHang: dto.diaChiGiaoHang ?? customer.diaChi,
+          diaChiGiaoHang:
+            dto.diaChiGiaoHang ??
+            (await this.defaultDeliveryAddress(customer, tx)),
           ghiChu: dto.ghiChu ?? null,
           ...(await this.createHeader(dto, customer, tx)),
           createdById: actor.id,
@@ -586,6 +588,18 @@ export class PhieuXuatHangService {
       maChiTietPhieuXuatHang: formatLineCode(maPhieu, index + 1),
       ...line,
     }));
+  }
+
+  // The customer's default delivery location, else the registered address.
+  private async defaultDeliveryAddress(
+    customer: KhachHang,
+    tx: Prisma.TransactionClient,
+  ): Promise<string | null> {
+    const preferred = await tx.diaDiemGiaoHang.findFirst({
+      where: { khachHangId: customer.id, laMacDinh: true },
+      select: { diaDiem: true },
+    });
+    return preferred?.diaDiem ?? customer.diaChi;
   }
 
   private async assertVehicle(

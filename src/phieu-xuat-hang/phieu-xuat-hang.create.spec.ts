@@ -17,6 +17,7 @@ interface Options {
   issued?: { conNo?: string }[]; // already issued orders of the customer
   term?: { id: string; soNgayDuocNo: number } | null;
   quoteExists?: boolean;
+  defaultPlace?: string;
   priceUnit?: { donViTinh: string; soLuongQuyDoi: number }[];
   unitFactor?: number | null; // null = unknown unit
   product?: Record<string, unknown>;
@@ -73,6 +74,11 @@ function setup(options: Options = {}) {
         created.push(args);
         return { id: 'new1' };
       }),
+    },
+    diaDiemGiaoHang: {
+      findFirst: vi.fn(async () =>
+        options.defaultPlace ? { diaDiem: options.defaultPlace } : null,
+      ),
     },
     baoGia: {
       count: vi.fn(async () => (options.quoteExists === false ? 0 : 1)),
@@ -167,6 +173,19 @@ describe('PhieuXuatHangService.create', () => {
         khachDiaChiSnapshot: '12 Lê Lợi',
         diaChiGiaoHang: '12 Lê Lợi',
         lapKemHoaDon: false,
+      });
+    });
+
+    it('địa chỉ giao mặc định = địa điểm giao hàng mặc định của khách, phiếu gửi địa chỉ riêng thì thắng', async () => {
+      const withPlace = setup({ defaultPlace: 'Kho giao chính' });
+      await withPlace.service.create(dto(), QL);
+      expect(withPlace.created[0]!.data).toMatchObject({
+        diaChiGiaoHang: 'Kho giao chính',
+        khachDiaChiSnapshot: '12 Lê Lợi',
+      });
+      await withPlace.service.create(dto({ diaChiGiaoHang: 'Nơi khác' }), QL);
+      expect(withPlace.created[1]!.data).toMatchObject({
+        diaChiGiaoHang: 'Nơi khác',
       });
     });
 

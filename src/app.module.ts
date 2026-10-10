@@ -25,6 +25,8 @@ import { DieuKhoanThanhToanModule } from './dieu-khoan-thanh-toan/dieu-khoan-tha
 import { NhanVienKinhDoanhModule } from './nhan-vien-kinh-doanh/nhan-vien-kinh-doanh.module.js';
 import { NhomDoiTacModule } from './nhom-doi-tac/nhom-doi-tac.module.js';
 import { DoiTruChungTuModule } from './doi-tru-chung-tu/doi-tru-chung-tu.module.js';
+import { DiaDiemGiaoHangModule } from './dia-diem-giao-hang/dia-diem-giao-hang.module.js';
+import { TaiKhoanNganHangModule } from './tai-khoan-ngan-hang/tai-khoan-ngan-hang.module.js';
 import { BaoGiaModule } from './bao-gia/bao-gia.module.js';
 import { TraLaiHangBanModule } from './tra-lai-hang-ban/tra-lai-hang-ban.module.js';
 import { BaoCaoModule } from './bao-cao/bao-cao.module.js';
@@ -137,6 +139,8 @@ const REQUEST_ID_PATTERN = /^[A-Za-z0-9._-]{1,64}$/;
     DoiTruChungTuModule,
     TraLaiHangBanModule,
     BaoGiaModule,
+    TaiKhoanNganHangModule,
+    DiaDiemGiaoHangModule,
     BaoCaoModule,
     TepDinhKemModule,
     NhomDoiTacModule,

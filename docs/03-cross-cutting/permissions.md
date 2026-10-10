@@ -123,6 +123,8 @@ Cột: **A** = `ADMIN`, **Q** = `QUAN_LY_KHO`, **N** = `NHAN_VIEN_KHO`, **K** = 
 | `tra-lai-hang-ban.huy` (đã nhập lại kho) | ✓ | ✓ | ✗ | ✗ |
 | `bao-gia.list/read` | ✓ | ✓ | ✓ | ✓ |
 | `bao-gia.create/update/delete/chuyen-phieu-xuat` | ✓ | ✓ | ✓ | ✗ |
+| `tai-khoan-ngan-hang`, `dia-diem-giao-hang` (đọc) | ✓ | ✓ | ✓ | ✓ |
+| `tai-khoan-ngan-hang`, `dia-diem-giao-hang` (thêm/sửa/xóa) | ✓ | ✓ | ✗ | ✓ |
 | `khach-hang.cong-no` (xem công nợ khách) | ✓ | ✓ | ✗ | ✓ |
 | `phieu-thanh-toan.list/read` | ✓ | ✓ | ✗ | ✓ |
 | `phieu-thanh-toan.create`, `huy` | ✓ | ✗ | ✗ | ✓ |

@@ -4,7 +4,7 @@ Bảng phẳng mọi endpoint của hệ thống: method, path, xác thực, rol
 
 Quy ước: `mọi role` = mọi người dùng đã đăng nhập; `Public` = không cần token; prefix `/api/v1` (áp dụng sau M0). Cột **MS** = milestone triển khai ([roadmap.md](../00-overview/roadmap.md)). Cột **Doc** trỏ tới file nguồn.
 
-Tổng số endpoint: **142**. Bảng này được đối chiếu tự động với code và ma trận role bởi `test/catalog-permissions.e2e-spec.ts` (thêm hoặc đổi endpoint mà không sửa bảng này thì test fail).
+Tổng số endpoint: **154**. Bảng này được đối chiếu tự động với code và ma trận role bởi `test/catalog-permissions.e2e-spec.ts` (thêm hoặc đổi endpoint mà không sửa bảng này thì test fail).
 
 ## Auth — [auth](../02-modules/auth.md)
 
@@ -212,6 +212,23 @@ Tổng số endpoint: **142**. Bảng này được đối chiếu tự động 
 | DELETE | `/api/v1/bao-gia/:id` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Xóa khi chưa từng có phiếu xuất |
 | POST | `/api/v1/bao-gia/:id/chuyen-phieu-xuat` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Tạo phiếu xuất chờ xử lý từ báo giá; người gọi chọn lô/vị trí (`phanBo`) phủ đủ số lượng từng dòng |
 
+## Tài khoản ngân hàng và địa điểm giao hàng
+
+| Method | Path | Auth | Roles | Mô tả |
+|---|---|---|---|---|
+| GET | `/api/v1/khach-hang/:khachHangId/tai-khoan-ngan-hang` | JWT | mọi role | Tài khoản ngân hàng của khách hàng |
+| POST | `/api/v1/khach-hang/:khachHangId/tai-khoan-ngan-hang` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Thêm (trùng số tài khoản + ngân hàng bị chặn) |
+| PATCH | `/api/v1/khach-hang/:khachHangId/tai-khoan-ngan-hang/:id` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Sửa |
+| DELETE | `/api/v1/khach-hang/:khachHangId/tai-khoan-ngan-hang/:id` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Xóa |
+| GET | `/api/v1/nha-cung-cap/:nhaCungCapId/tai-khoan-ngan-hang` | JWT | mọi role | Tài khoản ngân hàng của nhà cung cấp |
+| POST | `/api/v1/nha-cung-cap/:nhaCungCapId/tai-khoan-ngan-hang` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Thêm (trùng số tài khoản + ngân hàng bị chặn) |
+| PATCH | `/api/v1/nha-cung-cap/:nhaCungCapId/tai-khoan-ngan-hang/:id` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Sửa |
+| DELETE | `/api/v1/nha-cung-cap/:nhaCungCapId/tai-khoan-ngan-hang/:id` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Xóa |
+| GET | `/api/v1/khach-hang/:khachHangId/dia-diem-giao-hang` | JWT | mọi role | Địa điểm giao hàng (mặc định đứng đầu) |
+| POST | `/api/v1/khach-hang/:khachHangId/dia-diem-giao-hang` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Thêm; địa điểm đầu tiên tự là mặc định, `laMacDinh: true` đổi mặc định |
+| PATCH | `/api/v1/khach-hang/:khachHangId/dia-diem-giao-hang/:id` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Sửa hoặc đặt làm mặc định (không tắt trực tiếp được) |
+| DELETE | `/api/v1/khach-hang/:khachHangId/dia-diem-giao-hang/:id` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Xóa; nếu là mặc định thì chuyển sang địa điểm khác |
+
 ## Danh mục kinh doanh (bổ sung theo MISA)
 
 | Method | Path | Auth | Roles | Mô tả ngắn |
@@ -232,7 +249,7 @@ Tổng số endpoint: **142**. Bảng này được đối chiếu tự động 
 | PATCH | `/api/v1/nhan-vien-kinh-doanh/:id` | JWT | ADMIN, QUAN_LY_KHO, KE_TOAN | Sửa nhân viên kinh doanh |
 | DELETE | `/api/v1/nhan-vien-kinh-doanh/:id` | JWT | ADMIN | Xóa nhân viên kinh doanh |
 
-Khách hàng, nhà cung cấp, hàng hóa, phiếu xuất và phiếu thu nhận/trả thêm các trường mới (hạn mức nợ `soNoToiDa`, `soNgayDuocNo`, điều khoản, nhân viên, nhóm, địa lý, liên hệ; chiết khấu và thuế theo dòng phiếu xuất; `hanThanhToan`; `nguoiNop`...). Chưa có API cho: tài khoản ngân hàng, địa điểm giao hàng (bảng đã có trong schema).
+Khách hàng, nhà cung cấp, hàng hóa, phiếu xuất và phiếu thu nhận/trả thêm các trường mới (hạn mức nợ `soNoToiDa`, `soNgayDuocNo`, điều khoản, nhân viên, nhóm, địa lý, liên hệ; chiết khấu và thuế theo dòng phiếu xuất; `hanThanhToan`; `nguoiNop`...). Phiếu xuất tự lấy địa điểm giao hàng mặc định của khách làm `diaChiGiaoHang` khi không truyền (không có thì dùng địa chỉ đăng ký).
 
 ## Báo cáo — [bao-cao](../02-modules/bao-cao.md)
 
