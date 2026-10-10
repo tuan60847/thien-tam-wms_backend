@@ -26,6 +26,7 @@ interface ErrorBody {
 interface OrderBody {
   id: string;
   hinhThucThanhToan: string;
+  phuongThucThu: string | null;
   maPhieuXuatHang: string;
   trangThai: string;
   diaChiGiaoHang: string | null;
@@ -722,6 +723,43 @@ describe('Phiếu xuất hàng và thu công nợ (e2e)', () => {
         .send({ lyDo: 'khách trả lại tiền' })
         .expect(200);
       await cancel(order.id).expect(200);
+    });
+
+    it('phương thức thu lưu ngay trên phiếu nháp; body xuất kho ghi đè được', async () => {
+      const lot = await stockLot(vnDate(300), 3);
+      const saved = await newOrder([line(lot)], {
+        hinhThucThanhToan: 'thu_tien_ngay',
+        phuongThucThu: 'chuyen_khoan',
+      });
+      expect(saved).toMatchObject({ phuongThucThu: 'chuyen_khoan' });
+      await issue(saved.id).expect(200);
+      expect(
+        (
+          await prisma.phieuThuCongNo.findFirstOrThrow({
+            where: { phieuXuatHangId: saved.id },
+          })
+        ).phuongThuc,
+      ).toBe('chuyen_khoan');
+
+      const overridden = await newOrder([line(lot)], {
+        hinhThucThanhToan: 'thu_tien_ngay',
+        phuongThucThu: 'chuyen_khoan',
+      });
+      await http()
+        .patch(`/api/v1/phieu-xuat-hang/${overridden.id}`)
+        .set(as('kho'))
+        .send({ phuongThucThu: 'tien_mat' })
+        .expect(200);
+      await issue(overridden.id)
+        .send({ phuongThucThu: 'chuyen_khoan' })
+        .expect(200);
+      expect(
+        (
+          await prisma.phieuThuCongNo.findFirstOrThrow({
+            where: { phieuXuatHangId: overridden.id },
+          })
+        ).phuongThuc,
+      ).toBe('chuyen_khoan');
     });
 
     it('mặc định tiền mặt; phiếu ghi nợ thường không tự lập phiếu thu', async () => {

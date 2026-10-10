@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import type { Prisma, TaiKhoanNganHang } from '@prisma/client';
+import { Prisma, type TaiKhoanNganHang } from '@prisma/client';
 import { AppException } from '../common/errors/app.exception.js';
 import { KhachHangService } from '../khach-hang/khach-hang.service.js';
 import { NhaCungCapService } from '../nha-cung-cap/nha-cung-cap.service.js';
@@ -45,20 +45,22 @@ export class TaiKhoanNganHangService {
     owner: BankAccountOwner,
     dto: CreateTaiKhoanNganHangDto,
   ): Promise<TaiKhoanNganHangResponseDto> {
-    return this.prisma.$transaction(async (tx) => {
-      await this.assertOwner(owner, tx);
-      await this.assertUnique(owner, dto.soTaiKhoan, dto.tenNganHang, tx);
-      const created = await tx.taiKhoanNganHang.create({
-        data: {
-          ...owner,
-          soTaiKhoan: dto.soTaiKhoan,
-          tenNganHang: dto.tenNganHang,
-          chiNhanh: dto.chiNhanh ?? null,
-          tinhTpNganHang: dto.tinhTpNganHang ?? null,
-        },
-      });
-      return toResponse(created);
-    });
+    return this.guardDuplicate(() =>
+      this.prisma.$transaction(async (tx) => {
+        await this.assertOwner(owner, tx);
+        await this.assertUnique(owner, dto.soTaiKhoan, dto.tenNganHang, tx);
+        const created = await tx.taiKhoanNganHang.create({
+          data: {
+            ...owner,
+            soTaiKhoan: dto.soTaiKhoan,
+            tenNganHang: dto.tenNganHang,
+            chiNhanh: dto.chiNhanh ?? null,
+            tinhTpNganHang: dto.tinhTpNganHang ?? null,
+          },
+        });
+        return toResponse(created);
+      }),
+    );
   }
 
   async update(
@@ -66,32 +68,50 @@ export class TaiKhoanNganHangService {
     id: string,
     dto: UpdateTaiKhoanNganHangDto,
   ): Promise<TaiKhoanNganHangResponseDto> {
-    return this.prisma.$transaction(async (tx) => {
-      const current = await this.findOwned(owner, id, tx);
-      const soTaiKhoan = dto.soTaiKhoan ?? current.soTaiKhoan;
-      const tenNganHang = dto.tenNganHang ?? current.tenNganHang;
-      if (
-        soTaiKhoan !== current.soTaiKhoan ||
-        tenNganHang !== current.tenNganHang
-      ) {
-        await this.assertUnique(owner, soTaiKhoan, tenNganHang, tx, id);
-      }
-      const updated = await tx.taiKhoanNganHang.update({
-        where: { id },
-        data: {
-          soTaiKhoan,
-          tenNganHang,
-          chiNhanh: dto.chiNhanh,
-          tinhTpNganHang: dto.tinhTpNganHang,
-        },
-      });
-      return toResponse(updated);
-    });
+    return this.guardDuplicate(() =>
+      this.prisma.$transaction(async (tx) => {
+        const current = await this.findOwned(owner, id, tx);
+        const soTaiKhoan = dto.soTaiKhoan ?? current.soTaiKhoan;
+        const tenNganHang = dto.tenNganHang ?? current.tenNganHang;
+        if (
+          soTaiKhoan !== current.soTaiKhoan ||
+          tenNganHang !== current.tenNganHang
+        ) {
+          await this.assertUnique(owner, soTaiKhoan, tenNganHang, tx, id);
+        }
+        const updated = await tx.taiKhoanNganHang.update({
+          where: { id },
+          data: {
+            soTaiKhoan,
+            tenNganHang,
+            chiNhanh: dto.chiNhanh,
+            tinhTpNganHang: dto.tinhTpNganHang,
+          },
+        });
+        return toResponse(updated);
+      }),
+    );
   }
 
   async remove(owner: BankAccountOwner, id: string): Promise<void> {
     await this.findOwned(owner, id);
     await this.prisma.taiKhoanNganHang.delete({ where: { id } });
+  }
+
+  // The unique index is the final guard: two simultaneous identical inserts both pass the
+  // pre-check, and the loser is reported like any other duplicate.
+  private async guardDuplicate<T>(action: () => Promise<T>): Promise<T> {
+    try {
+      return await action();
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new AppException('TAI_KHOAN_NGAN_HANG_DUPLICATE');
+      }
+      throw error;
+    }
   }
 
   private async assertOwner(

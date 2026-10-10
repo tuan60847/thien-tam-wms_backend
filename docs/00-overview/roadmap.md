@@ -115,3 +115,5 @@ Rà soát phân quyền toàn bộ endpoint theo [permissions.md](../03-cross-cu
 ## Điểm cắt nếu cần thu hẹp
 
 Có thể hoãn sang sau MVP mà không phá luồng chính: `tep-dinh-kem`, export Excel, `phuong-tien-van-chuyen`, báo cáo doanh thu theo nhân viên, chuyển vị trí hàng. Không thể hoãn: M0–M6.
+
+Migration `m10_bo_sung_hoan_thien` (chỉ thêm): `phieu_xuat_hang.phuong_thuc_thu` (phương thức của phiếu thu tự lập khi xuất kho phiếu `thu_tien_ngay`, truyền lúc xuất kho ghi đè được), unique `(chủ, số tài khoản, ngân hàng)` cho tài khoản ngân hàng của khách và của nhà cung cấp, `chi_tiet_bao_gia.thu_tu` (giữ thứ tự dòng báo giá). Chuyển báo giá thành phiếu xuất chạy trong một transaction có khóa dòng báo giá nên hai yêu cầu đồng thời chỉ tạo một phiếu.

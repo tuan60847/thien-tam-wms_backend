@@ -165,7 +165,7 @@ Tổng số endpoint: **155**. Bảng này được đối chiếu tự động 
 | POST | `/api/v1/phieu-xuat-hang` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Lập phiếu xuất (chờ xử lý) | M6 |
 | PATCH | `/api/v1/phieu-xuat-hang/:id` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Sửa phiếu chờ xử lý (thay toàn bộ dòng nếu gửi `chiTiet`) | M6 |
 | DELETE | `/api/v1/phieu-xuat-hang/:id` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Xóa phiếu chờ xử lý | M6 |
-| POST | `/api/v1/phieu-xuat-hang/:id/xuat-kho` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Xuất kho: trừ tồn, phát sinh công nợ; phiếu `thu_tien_ngay` tự lập phiếu thu (body tùy chọn `phuongThucThu`, mặc định tiền mặt) | M6 |
+| POST | `/api/v1/phieu-xuat-hang/:id/xuat-kho` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Xuất kho: trừ tồn, phát sinh công nợ; phiếu `thu_tien_ngay` tự lập phiếu thu (`phuongThucThu` lưu trên phiếu hoặc truyền trong body để ghi đè, mặc định tiền mặt) | M6 |
 | POST | `/api/v1/phieu-xuat-hang/:id/giao-hang` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Xác nhận đã giao hàng | M6 |
 | PATCH | `/api/v1/phieu-xuat-hang/:id/tinh-trang-no` | JWT | ADMIN, KE_TOAN | Đổi tình trạng nợ của phiếu đã xuất kho (ghi nhật ký) | M6 |
 | POST | `/api/v1/phieu-xuat-hang/:id/huy` | JWT | ADMIN, QUAN_LY_KHO, NHAN_VIEN_KHO | Hủy phiếu | M6 |

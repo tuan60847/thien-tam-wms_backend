@@ -32,8 +32,7 @@ export const baoGiaDetailInclude = {
   nhanVienBanHang: userSelect,
   createdBy: userSelect,
   chiTiets: {
-    // Lines have no sequence column, so they are shown by product name.
-    orderBy: [{ hangHoa: { tenSP: 'asc' } }, { id: 'asc' }],
+    orderBy: [{ thuTu: 'asc' }, { id: 'asc' }],
     include: { hangHoa: { select: { id: true, maSP: true, tenSP: true } } },
   },
   phieuXuatHangs: {

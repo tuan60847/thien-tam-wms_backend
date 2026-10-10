@@ -221,50 +221,55 @@ export class PhieuXuatHangService {
     dto: CreatePhieuXuatDto,
     actor: AuthenticatedUser,
   ): Promise<PhieuXuatResponseDto> {
-    const id = await this.prisma.$transaction(async (tx) => {
-      const customer = await this.khachHang.findByIdOrThrow(
-        dto.khachHangId,
-        tx,
-      );
-      this.khachHang.assertCanBuy(customer);
-      const prepared = await this.prepareLines(dto.chiTiet ?? [], actor, tx);
-      await this.assertVehicle(dto.phuongTienVanChuyenId, prepared.hasCold, tx);
-      // Paid on the spot: no debt is created, so the credit limit does not apply.
-      const exceeded =
-        dto.hinhThucThanhToan === 'thu_tien_ngay'
-          ? null
-          : await this.assertCreditLimit(
-              customer,
-              computeNetTotals(prepared.lines).tongThanhToan,
-              tx,
-              { actor, lyDo: dto.vuotHanMucLyDo },
-            );
-
-      const ma = await this.codes.next(CODE.PHIEU_XUAT, tx);
-      const created = await tx.phieuXuatHang.create({
-        data: {
-          maPhieuXuatHang: ma,
-          khachHangId: dto.khachHangId,
-          phuongTienVanChuyenId: dto.phuongTienVanChuyenId ?? null,
-          ngayGiaoHang: dto.ngayGiaoHang
-            ? parseDateOnly(dto.ngayGiaoHang)
-            : null,
-          // Snapshot: later edits of the customer's address must not change this order.
-          diaChiGiaoHang:
-            dto.diaChiGiaoHang ??
-            (await this.defaultDeliveryAddress(customer, tx)),
-          ghiChu: dto.ghiChu ?? null,
-          ...(await this.createHeader(dto, customer, tx)),
-          createdById: actor.id,
-          updatedById: actor.id,
-          chiTietPhieuXuatHangs: { create: this.lineData(ma, prepared.lines) },
-        },
-      });
-      await this.recordBelowMin(created.id, prepared.belowMin, tx);
-      await this.recordCreditOverride(created.id, exceeded, tx);
-      return created.id;
-    });
+    const id = await this.prisma.$transaction((tx) =>
+      this.createInTransaction(dto, actor, tx),
+    );
     return this.findOne(id);
+  }
+
+  // Same as `create` inside the caller's transaction (e.g. a quote locking itself first).
+  // Returns the new id; read it with `findOne` after the transaction commits.
+  async createInTransaction(
+    dto: CreatePhieuXuatDto,
+    actor: AuthenticatedUser,
+    tx: Prisma.TransactionClient,
+  ): Promise<string> {
+    const customer = await this.khachHang.findByIdOrThrow(dto.khachHangId, tx);
+    this.khachHang.assertCanBuy(customer);
+    const prepared = await this.prepareLines(dto.chiTiet ?? [], actor, tx);
+    await this.assertVehicle(dto.phuongTienVanChuyenId, prepared.hasCold, tx);
+    // Paid on the spot: no debt is created, so the credit limit does not apply.
+    const exceeded =
+      dto.hinhThucThanhToan === 'thu_tien_ngay'
+        ? null
+        : await this.assertCreditLimit(
+            customer,
+            computeNetTotals(prepared.lines).tongThanhToan,
+            tx,
+            { actor, lyDo: dto.vuotHanMucLyDo },
+          );
+
+    const ma = await this.codes.next(CODE.PHIEU_XUAT, tx);
+    const created = await tx.phieuXuatHang.create({
+      data: {
+        maPhieuXuatHang: ma,
+        khachHangId: dto.khachHangId,
+        phuongTienVanChuyenId: dto.phuongTienVanChuyenId ?? null,
+        ngayGiaoHang: dto.ngayGiaoHang ? parseDateOnly(dto.ngayGiaoHang) : null,
+        // Snapshot: later edits of the customer's address must not change this order.
+        diaChiGiaoHang:
+          dto.diaChiGiaoHang ??
+          (await this.defaultDeliveryAddress(customer, tx)),
+        ghiChu: dto.ghiChu ?? null,
+        ...(await this.createHeader(dto, customer, tx)),
+        createdById: actor.id,
+        updatedById: actor.id,
+        chiTietPhieuXuatHangs: { create: this.lineData(ma, prepared.lines) },
+      },
+    });
+    await this.recordBelowMin(created.id, prepared.belowMin, tx);
+    await this.recordCreditOverride(created.id, exceeded, tx);
+    return created.id;
   }
 
   async update(
@@ -441,7 +446,7 @@ export class PhieuXuatHangService {
       if (paidNow) {
         await this.recordImmediatePayment(
           phieu,
-          dto.phuongThucThu ?? 'tien_mat',
+          dto.phuongThucThu ?? phieu.phuongThucThu ?? 'tien_mat',
           actor,
           tx,
         );
@@ -924,6 +929,7 @@ export class PhieuXuatHangService {
       hanThanhToan: dto.hanThanhToan ? parseDateOnly(dto.hanThanhToan) : null,
       thamChieu: dto.thamChieu ?? null,
       hinhThucThanhToan: dto.hinhThucThanhToan ?? 'chua_thu_tien',
+      phuongThucThu: dto.phuongThucThu ?? null,
       lapKemHoaDon: dto.lapKemHoaDon ?? false,
       dieuKhoanKhac: dto.dieuKhoanKhac ?? null,
       tenMatHangChung: dto.tenMatHangChung ?? null,
@@ -961,6 +967,7 @@ export class PhieuXuatHangService {
             : parseDateOnly(dto.hanThanhToan),
       thamChieu: dto.thamChieu,
       hinhThucThanhToan: dto.hinhThucThanhToan,
+      phuongThucThu: dto.phuongThucThu,
       lapKemHoaDon: dto.lapKemHoaDon,
       dieuKhoanKhac: dto.dieuKhoanKhac,
       tenMatHangChung: dto.tenMatHangChung,

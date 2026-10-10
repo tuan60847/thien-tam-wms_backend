@@ -155,6 +155,7 @@ export function toPhieuXuatResponse(
     phuongTienVanChuyen: row.phuongTienVanChuyen,
     ngayGiaoThucTe: dateOrNull(row.ngayGiaoThucTe),
     hinhThucThanhToan: row.hinhThucThanhToan,
+    phuongThucThu: row.phuongThucThu,
     tinhTrangNo: row.tinhTrangNo,
     soNgayDuocNo: row.soNgayDuocNo,
     hanThanhToan: dateOrNull(row.hanThanhToan),

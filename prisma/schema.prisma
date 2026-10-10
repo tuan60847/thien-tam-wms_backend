@@ -610,6 +610,7 @@ model PhieuXuatHang {
 
   // ---- Bổ sung theo màn hình "Chứng từ bán hàng" của MISA ----
   hinhThucThanhToan HinhThucThanhToan @default(chua_thu_tien) @map("hinh_thuc_thanh_toan")
+  phuongThucThu     PhuongThucThanhToan? @map("phuong_thuc_thu") // dùng khi thu_tien_ngay
   tinhTrangNo       TinhTrangNo       @default(no_binh_thuong) @map("tinh_trang_no")
   soNgayDuocNo      Int?              @map("so_ngay_duoc_no")
   hanThanhToan      DateTime?         @map("han_thanh_toan") @db.Date
@@ -808,6 +809,9 @@ model TaiKhoanNganHang {
   nhaCungCapId String?     @map("nha_cung_cap_id")
   nhaCungCap   NhaCungCap? @relation("NhaCungCapNganHang", fields: [nhaCungCapId], references: [id], onDelete: Cascade)
 
+  // NULL không bằng nhau trong unique, nên mỗi ràng buộc chỉ áp cho đúng một loại chủ
+  @@unique([khachHangId, soTaiKhoan, tenNganHang])
+  @@unique([nhaCungCapId, soTaiKhoan, tenNganHang])
   @@map("tai_khoan_ngan_hang")
 }
 
@@ -856,6 +860,7 @@ model ChiTietBaoGia {
   donGia        Decimal @map("don_gia") @db.Decimal(15, 2)
   tyLeChietKhau Decimal @default(0) @map("ty_le_chiet_khau") @db.Decimal(5, 2)
   thueSuatGtgt  Decimal @default(0) @map("thue_suat_gtgt") @db.Decimal(5, 2)
+  thuTu         Int     @default(0) @map("thu_tu") // thứ tự dòng khi nhập
 
   baoGiaId  String  @map("bao_gia_id")
   baoGia    BaoGia  @relation(fields: [baoGiaId], references: [id], onDelete: Cascade)

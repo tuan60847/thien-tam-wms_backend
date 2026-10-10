@@ -177,6 +177,16 @@ export class CreatePhieuXuatDto {
   @IsEnum(HINH_THUC_THANH_TOAN)
   hinhThucThanhToan?: HinhThucThanhToanValue;
 
+  @ApiPropertyOptional({
+    enum: PHUONG_THUC_THU,
+    nullable: true,
+    description:
+      'Phương thức của phiếu thu tự lập khi xuất kho (thu_tien_ngay); mặc định tiền mặt',
+  })
+  @IsOptional()
+  @IsEnum(PHUONG_THUC_THU)
+  phuongThucThu?: PhuongThucThuValue | null;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
@@ -250,7 +260,7 @@ export class XuatKhoDto {
     enum: PHUONG_THUC_THU,
     default: 'tien_mat',
     description:
-      'Chỉ dùng khi phiếu là thu_tien_ngay: phương thức của phiếu thu tự lập',
+      'Chỉ dùng khi phiếu là thu_tien_ngay; ghi đè phương thức đã lưu trên phiếu',
   })
   @IsOptional()
   @IsEnum(PHUONG_THUC_THU)
@@ -415,6 +425,8 @@ export class PhieuXuatResponseDto extends PhieuXuatListItemDto {
   @ApiProperty({ nullable: true }) ngayGiaoThucTe!: string | null;
   @ApiProperty({ enum: HINH_THUC_THANH_TOAN })
   hinhThucThanhToan!: string;
+  @ApiProperty({ enum: PHUONG_THUC_THU, nullable: true })
+  phuongThucThu!: string | null;
   @ApiProperty({ enum: TINH_TRANG_NO })
   tinhTrangNo!: string;
   @ApiProperty({ nullable: true, type: Number }) soNgayDuocNo!: number | null;

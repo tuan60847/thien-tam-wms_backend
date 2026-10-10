@@ -149,6 +149,20 @@ describe('Tài khoản ngân hàng và địa điểm giao hàng (e2e)', () => {
       ).toBe(1);
     });
 
+    it('hai yêu cầu trùng gửi cùng lúc: chỉ một tài khoản được tạo, bên kia báo trùng', async () => {
+      const url = base('khach-hang', khachId);
+      const body = { soTaiKhoan: 'RACE-1', tenNganHang: 'Techcombank' };
+      const [a, b] = await Promise.all([
+        http().post(url).set(as('ketoan')).send(body),
+        http().post(url).set(as('ketoan')).send(body),
+      ]);
+      expect([a.status, b.status].sort((x, y) => x - y)).toEqual([201, 409]);
+      const loser = a.status === 409 ? a : b;
+      expect((loser.body as ErrorBody).code).toBe(
+        'TAI_KHOAN_NGAN_HANG_DUPLICATE',
+      );
+    });
+
     it('không đụng được tài khoản của chủ khác; chủ không tồn tại; phân quyền', async () => {
       const mine = (
         await http()

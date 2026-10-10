@@ -46,6 +46,7 @@ const SORT_WHITELIST = [
 ] as const;
 
 interface PreparedLine {
+  thuTu: number;
   hangHoaId: string;
   donViTinh: string;
   soLuong: number;
@@ -269,85 +270,92 @@ export class BaoGiaService {
     dto: ChuyenPhieuXuatDto,
     actor: AuthenticatedUser,
   ): Promise<PhieuXuatResponseDto> {
-    const quote = await this.prisma.baoGia.findUnique({
-      where: { id },
-      include: {
-        chiTiets: true,
-        phieuXuatHangs: { select: { trangThai: true } },
-      },
-    });
-    if (!quote) {
-      throw new AppException('BAO_GIA_NOT_FOUND');
-    }
-    if (hasLiveOrder(quote.phieuXuatHangs)) {
-      throw new AppException('BAO_GIA_ALREADY_CONVERTED');
-    }
-    if (isExpired(quote.hanHieuLuc, this.clock.today())) {
-      throw new AppException('BAO_GIA_EXPIRED');
-    }
-    if (quote.chiTiets.length === 0) {
-      throw new AppException('BAO_GIA_EMPTY');
-    }
-    if (!allocationCoversQuote(quote.chiTiets, dto.phanBo)) {
-      throw new AppException('BAO_GIA_ALLOCATION_INVALID');
-    }
-
-    const lines = new Map(quote.chiTiets.map((l) => [l.id, l]));
-    const lots = await this.prisma.soLo.findMany({
-      where: { id: { in: dto.phanBo.map((a) => a.soLoId) } },
-      select: { id: true, hangHoaId: true },
-    });
-    const lotProduct = new Map(lots.map((l) => [l.id, l.hangHoaId]));
-    const chiTiet = dto.phanBo.map((alloc, index) => {
-      const line = lines.get(alloc.chiTietBaoGiaId);
-      // A lot of another product cannot fill this quote line; unknown lots are
-      // reported by the order itself (SO_LO_NOT_FOUND).
-      if (
-        !line ||
-        (lotProduct.has(alloc.soLoId) &&
-          lotProduct.get(alloc.soLoId) !== line.hangHoaId)
-      ) {
-        throw new AppException('BAO_GIA_ALLOCATION_INVALID', {
-          details: { field: `phanBo[${index}]` },
-        });
+    const orderId = await this.prisma.$transaction(async (tx) => {
+      // The quote row is locked first: two simultaneous conversions run one after another,
+      // so the second sees the first one's order and is refused.
+      await tx.$queryRaw`SELECT id FROM bao_gia WHERE id = ${id} FOR UPDATE`;
+      const quote = await tx.baoGia.findUnique({
+        where: { id },
+        include: {
+          chiTiets: true,
+          phieuXuatHangs: { select: { trangThai: true } },
+        },
+      });
+      if (!quote) {
+        throw new AppException('BAO_GIA_NOT_FOUND');
       }
-      return {
-        soLoId: alloc.soLoId,
-        viTriId: alloc.viTriId,
-        donViTinh: line.donViTinh,
-        soLuong: alloc.soLuong,
-        donGia: line.donGia.toFixed(2),
-        laHangKhuyenMai: alloc.laHangKhuyenMai,
-        tyLeChietKhau: line.tyLeChietKhau.toFixed(2),
-        thueSuatGtgt: line.thueSuatGtgt.toFixed(2),
-      };
-    });
+      if (hasLiveOrder(quote.phieuXuatHangs)) {
+        throw new AppException('BAO_GIA_ALREADY_CONVERTED');
+      }
+      if (isExpired(quote.hanHieuLuc, this.clock.today())) {
+        throw new AppException('BAO_GIA_EXPIRED');
+      }
+      if (quote.chiTiets.length === 0) {
+        throw new AppException('BAO_GIA_EMPTY');
+      }
+      if (!allocationCoversQuote(quote.chiTiets, dto.phanBo)) {
+        throw new AppException('BAO_GIA_ALLOCATION_INVALID');
+      }
 
-    const order = await this.phieuXuat.create(
-      {
-        khachHangId: quote.khachHangId,
-        baoGiaId: quote.id,
-        nhanVienBanHangId: quote.nhanVienBanHangId,
-        phuongTienVanChuyenId: dto.phuongTienVanChuyenId,
-        ngayGiaoHang: dto.ngayGiaoHang,
-        diaChiGiaoHang: dto.diaChiGiaoHang,
-        ghiChu: dto.ghiChu ?? quote.ghiChu,
-        thamChieu: quote.maBaoGia,
-        vuotHanMucLyDo: dto.vuotHanMucLyDo,
-        chiTiet,
-      },
-      actor,
-    );
-    await this.audit.record({
-      hanhDong: 'bao_gia.convert',
-      doiTuong: 'bao_gia',
-      doiTuongId: id,
-      sau: {
-        phieuXuatHangId: order.id,
-        maPhieuXuatHang: order.maPhieuXuatHang,
-      },
+      const lines = new Map(quote.chiTiets.map((l) => [l.id, l]));
+      const lots = await tx.soLo.findMany({
+        where: { id: { in: dto.phanBo.map((a) => a.soLoId) } },
+        select: { id: true, hangHoaId: true },
+      });
+      const lotProduct = new Map(lots.map((l) => [l.id, l.hangHoaId]));
+      const chiTiet = dto.phanBo.map((alloc, index) => {
+        const line = lines.get(alloc.chiTietBaoGiaId);
+        // A lot of another product cannot fill this quote line; unknown lots are
+        // reported by the order itself (SO_LO_NOT_FOUND).
+        if (
+          !line ||
+          (lotProduct.has(alloc.soLoId) &&
+            lotProduct.get(alloc.soLoId) !== line.hangHoaId)
+        ) {
+          throw new AppException('BAO_GIA_ALLOCATION_INVALID', {
+            details: { field: `phanBo[${index}]` },
+          });
+        }
+        return {
+          soLoId: alloc.soLoId,
+          viTriId: alloc.viTriId,
+          donViTinh: line.donViTinh,
+          soLuong: alloc.soLuong,
+          donGia: line.donGia.toFixed(2),
+          laHangKhuyenMai: alloc.laHangKhuyenMai,
+          tyLeChietKhau: line.tyLeChietKhau.toFixed(2),
+          thueSuatGtgt: line.thueSuatGtgt.toFixed(2),
+        };
+      });
+
+      const createdId = await this.phieuXuat.createInTransaction(
+        {
+          khachHangId: quote.khachHangId,
+          baoGiaId: quote.id,
+          nhanVienBanHangId: quote.nhanVienBanHangId,
+          phuongTienVanChuyenId: dto.phuongTienVanChuyenId,
+          ngayGiaoHang: dto.ngayGiaoHang,
+          diaChiGiaoHang: dto.diaChiGiaoHang,
+          ghiChu: dto.ghiChu ?? quote.ghiChu,
+          thamChieu: quote.maBaoGia,
+          vuotHanMucLyDo: dto.vuotHanMucLyDo,
+          chiTiet,
+        },
+        actor,
+        tx,
+      );
+      await this.audit.record(
+        {
+          hanhDong: 'bao_gia.convert',
+          doiTuong: 'bao_gia',
+          doiTuongId: id,
+          sau: { phieuXuatHangId: createdId },
+        },
+        tx,
+      );
+      return createdId;
     });
-    return order;
+    return this.phieuXuat.findOne(orderId);
   }
 
   // ===========================================================================
@@ -404,6 +412,7 @@ export class BaoGiaService {
         });
       }
       lines.push({
+        thuTu: index + 1,
         hangHoaId: product.id,
         donViTinh: unit.donViTinh,
         soLuong: line.soLuong,

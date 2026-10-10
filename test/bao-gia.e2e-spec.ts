@@ -35,7 +35,7 @@ interface QuoteBody {
   tienChietKhau: string;
   tienThueGtgt: string;
   tongThanhToan: string;
-  chiTiet: { id: string; hangHoa: Id; thanhTien: string }[];
+  chiTiet: { id: string; hangHoa: Id; donGia: string; thanhTien: string }[];
   phieuXuats: { id: string; trangThai: string }[];
 }
 interface OrderBody {
@@ -251,6 +251,32 @@ describe('Báo giá (e2e)', () => {
     });
   });
 
+  it('dòng báo giá giữ đúng thứ tự nhập, kể cả sau khi sửa', async () => {
+    const q = await newQuote([
+      quoteLine(hang2Id, { donGia: '1000' }),
+      quoteLine(hangId, { donGia: '2000' }),
+      quoteLine(hang2Id, { donGia: '3000' }),
+    ]);
+    expect((await getQuote(q.id)).chiTiet.map((l) => l.donGia)).toEqual([
+      '1000.00',
+      '2000.00',
+      '3000.00',
+    ]);
+    const edited = (
+      await http()
+        .patch(`/api/v1/bao-gia/${q.id}`)
+        .set(as('kho'))
+        .send({
+          chiTiet: [
+            quoteLine(hangId, { donGia: '9000' }),
+            quoteLine(hang2Id, { donGia: '8000' }),
+          ],
+        })
+        .expect(200)
+    ).body as QuoteBody;
+    expect(edited.chiTiet.map((l) => l.donGia)).toEqual(['9000.00', '8000.00']);
+  });
+
   describe('kiểm tra dữ liệu và phân quyền', () => {
     it('từ chối đơn vị lạ, hạn trước ngày báo giá, báo giá rỗng, khách không có', async () => {
       const err = async (body: Record<string, unknown>, status: number) =>
@@ -401,6 +427,27 @@ describe('Báo giá (e2e)', () => {
       expect((await getQuote(q.id)).daChuyenPhieuXuat).toBe(false);
       await http().delete(`/api/v1/bao-gia/${q.id}`).set(as('kho')).expect(409);
       await convert(q.id, [alloc(3)]).expect(201);
+    });
+
+    it('hai người chuyển cùng một báo giá cùng lúc: chỉ một phiếu xuất được tạo', async () => {
+      const lot = await stockLot(hangId, 5);
+      const q = await newQuote([quoteLine(hangId, { soLuong: 1 })]);
+      const alloc = [
+        {
+          chiTietBaoGiaId: q.chiTiet[0]!.id,
+          soLoId: lot,
+          viTriId: viTriA,
+          soLuong: 1,
+        },
+      ];
+      const [a, b] = await Promise.all([
+        convert(q.id, alloc),
+        convert(q.id, alloc),
+      ]);
+      expect([a.status, b.status].sort((x, y) => x - y)).toEqual([201, 409]);
+      expect(
+        await prisma.phieuXuatHang.count({ where: { baoGiaId: q.id } }),
+      ).toBe(1);
     });
 
     it('chia một dòng ra nhiều lô; báo giá hết hạn không chuyển được', async () => {
